@@ -1,0 +1,15 @@
+{
+  "name": "homero",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "homero": "./packages/cli/bin/homero.mjs"
+  },
+  "scripts": {
+    "homero": "node .\\packages\\cli\\bin\\homero.mjs",
+    "bootstrap": "node .\\scripts\\bootstrap-harness.mjs",
+    "validate:target": "node .\\scripts\\validate-harness.mjs",
+    "validate:self": "node .\\scripts\\self-test.mjs"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "projectName": "__PROJECT_NAME__",
+  "packageManager": "pnpm",
+  "commands": {
+    "lint": "pnpm lint",
+    "typecheck": "pnpm exec tsc --noEmit",
+    "test": "pnpm test"
+  },
+  "paths": {
+    "uiRoot": "src/ui",
+    "stepRoot": "src/app",
+    "serverActionsRoot": "src/actions",
+    "storesRoot": "src/store"
+  },
+  "figma": {
+    "mcpExampleFile": "mcp.example.json"
+  },
+  "contracts": {
+    "mode": "contract-draft",
+    "format": "examples",
+    "source": "TBD",
+    "mockStrategy": "fixtures",
+    "mockLocation": "src/mocks",
+    "states": "success, loading, empty, validation error, business error, network/server error",
+    "sensitiveDataPolicy": "anonymized-only"
+  },
+  "agents": {
+    "workflow": "discover -> specify -> plan -> tasks -> implement -> verify -> converge",
+    "coordinator": "homero-coordinator",
+    "roles": [
+      "homero-discovery",
+      "homero-figma",
+      "homero-contracts",
+      "homero-planner",
+      "homero-implementer",
+      "homero-reviewer"
+    ],
+    "modelPolicy": "use client default unless the team records a specific model"
+  }
+}
