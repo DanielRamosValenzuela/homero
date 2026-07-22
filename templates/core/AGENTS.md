@@ -10,6 +10,7 @@ Read this repo in the following order before making non-trivial frontend changes
 6. `docs/homero/agent-roles.md`
 7. `docs/homero/conventions.md`
 8. `docs/homero/verification.md`
+10. `docs/homero/playwright-cli.md`
 
 ## Working model
 
@@ -23,11 +24,14 @@ Read this repo in the following order before making non-trivial frontend changes
 ## Non-negotiable rules
 
 1. Ask for missing discovery context before inventing business behavior.
-2. Treat Figma as design input, not as the only source of truth.
-3. Map UI to Tomaco and project conventions instead of copying raw Tailwind output.
+2. Every visual feature requires an approved Figma URL, node, and version before implementation.
+3. Use Tomaco. Do not introduce another design system or copy raw Tailwind output.
 4. Request backend contracts, draft contracts, or no-contract exceptions before inventing payloads.
-5. Prefer the local Homero generator when creating a new form structure.
-6. Do not bypass `docs/homero/verification.md` when closing a task.
+5. Register development mocks from backend inputs or recorded draft contracts. Never use mock fallbacks in production.
+6. Create features with `homero feature create`; do not begin a non-trivial feature without its contract and local feature branch.
+7. Use Playwright CLI to inspect real user flows and save snapshot plus screenshot evidence under `features/<id>/evidence/`.
+8. Do not bypass `docs/homero/verification.md` when closing a task.
+9. Do not commit, push, create pull requests, merge, or modify Figma. Those actions belong to a human.
 
 ## Fast paths
 
@@ -35,3 +39,7 @@ Read this repo in the following order before making non-trivial frontend changes
   `node .\scripts\homero\new-form.mjs --name UserInfoForm --country cl`
 - Harness validation:
   `homero validate --target . --client copilot`
+- Feature gate:
+  `homero feature check --target . --id FEAT-001`
+- Feature verification receipt:
+  `homero verify --target . --id FEAT-001`

@@ -42,8 +42,11 @@ Read `docs/homero/ai-workflow.md`, `docs/homero/agent-roles.md`, `docs/homero/co
 ## Constraints
 
 - Do not let implementation begin when blocking business, Figma, or contract questions remain.
+- Require `homero feature create` before work begins and `homero feature check` before delegation to the implementer.
+- Require Tomaco, an approved Figma URL/node/version, development mocks for backend-dependent work, and Playwright CLI evidence.
 - Do not invent backend payloads without contract mode, draft assumption, or explicit no-contract exception.
 - Do not self-approve the implementation; require verification evidence.
+- Do not commit, push, open a pull request, merge, or modify Figma.
 
 ## Output
 

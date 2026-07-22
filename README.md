@@ -1,228 +1,145 @@
 # Homero
 
-Homero es un harness interno para equipos frontend que trabajan con IA.
+Harness interno de frontend para Falabella Seguros. Homero prepara repositorios
+para trabajar con GitHub Copilot en VS Code y Claude Code usando Tomaco, Figma,
+contratos, mocks y verificación con Playwright.
 
-No existe solo para instalar archivos. Existe para dejar al repo listo para que
-Copilot o Claude trabajen con mejor contexto, pidan los insumos correctos y
-guien el desarrollo frontend de forma repetible.
+## Requisitos
 
-La idea central es esta:
+- Git
+- Node.js y `pnpm`
+- Un repositorio frontend con `package.json`
+- Figma aprobado y un contrato backend, ejemplos o cURLs para cada feature
 
-```text
-CLI = estructura
-IA = significado
-```
+## Instalar en un repositorio
 
-Instala Homero una vez en el repo. Usa el CLI para dejar estructura y reglas.
-Usa la IA para discovery, aclaracion, Figma, contratos, spec, plan y
-implementacion.
-
-
-## Instalacion recomendada
-
-Para trabajo real en equipo, instala Homero como `devDependency` en el repo
-destino.
+Ejecuta estos comandos desde la raíz del repositorio frontend:
 
 ```powershell
 pnpm add -D github:DanielRamosValenzuela/homero#v0.1.0
+pnpm exec homero init --target . --client both --project-name mi-proyecto
+pnpm exec homero discover --target .
+pnpm exec homero validate --target . --client both
 ```
 
-Luego ejecútalo localmente:
+`--client both` instala la configuración para Copilot en VS Code y Claude Code.
+Usa `copilot` o `claude` si solo necesitas uno.
+
+## Instalar Playwright
+
+Homero usa Playwright para que la IA valide los flujos en un navegador real.
+Primero revisa qué se instalará:
 
 ```powershell
-pnpm exec homero init --target . --client copilot --project-name mi-proyecto
+pnpm exec homero setup playwright --target . --dry-run
 ```
 
-Esto es mejor que usar `npx` o `pnpm dlx` todos los dias porque:
-
-- deja explicita la version instalada
-- se siente nativo dentro del repo
-- funciona mejor para uso repetido en equipo
-- evita que el flujo diario dependa de ejecuciones efimeras
-
-## Uso efimero solo para pruebas
-
-`pnpm dlx` o `npx` sigue siendo util para:
-
-- demos rapidas
-- probar el instalador
-- validar el bootstrap en un repo temporal
-
-Ejemplo:
+Luego instala Playwright:
 
 ```powershell
-pnpm dlx github:DanielRamosValenzuela/homero init --target . --client copilot --project-name mi-proyecto
+pnpm exec homero setup playwright --target .
 ```
 
-No es el flujo recomendado para el trabajo cotidiano.
+Este comando agrega `@playwright/test`, `@playwright/cli` y
+`@axe-core/playwright` como dependencias de desarrollo, e instala Chromium.
 
-## Flujo recomendado
+## Crear un feature
 
-1. Instalar Homero en el repo.
-2. Ejecutar `init` una vez.
-3. Ejecutar `discover` para dejar el contexto inicial.
-4. Usar la IA sobre `docs/homero/` para completar discovery y preparar el feature.
-5. Implementar con la IA usando Figma, contratos y mocks ya registrados.
-6. Ejecutar `validate` para asegurar que el harness sigue consistente.
-7. Usar `generate form` solo para patrones repetidos.
+Antes de crear un feature, el árbol Git debe estar limpio. Homero crea una rama
+local, pero no hace commits, push, pull requests ni merge.
 
-## Comandos disponibles
+```powershell
+pnpm exec homero feature create `
+  --target . `
+  --id FEAT-042 `
+  --name "Cotizador de vida" `
+  --figma "https://www.figma.com/design/...?..." `
+  --figma-version "approved-v3" `
+  --contract-mode contract-draft `
+  --contract-source "docs/contracts/quote.openapi.yaml"
+```
+
+El comando crea una rama como `feature/FEAT-042-cotizador-de-vida` y estos
+archivos:
 
 ```text
-homero init --target <repo> --client <copilot|claude|both> [--project-name <name>] [--force]
-homero discover --target <repo> [--defaults] [--force]
-homero validate --target <repo> [--client <copilot|claude|both>]
-homero generate form --target <repo> --name <FormName> --country <cl|pe|co> [--force]
+features/FEAT-042/
+  feature.json
+  evidence/playwright-cli.json
+specs/FEAT-042-cotizador-de-vida/
+  spec.md
+  plan.md
+  tasks.md
 ```
 
-## Cuando usar CLI y cuando usar IA
+Completa `features/FEAT-042/feature.json` antes de pedir implementación:
 
-Usa el CLI para trabajo estructural y deterministico:
+- criterios de aceptación;
+- preguntas abiertas resueltas;
+- mocks de desarrollo, si consume backend;
+- estados de carga, éxito, vacío y error;
+- Figma y versión aprobados.
 
-- `init`
-- `discover`
-- `validate`
-- `generate form`
-
-Usa la IA para trabajo semantico:
-
-- completar discovery
-- aclarar negocio y validaciones
-- interpretar Figma
-- aterrizar contratos o cURLs a mocks y supuestos
-- escribir spec, plan y tasks
-- implementar con contexto real del repo
-
-## Ejemplo practico 1: bootstrap de un repo nuevo
+Después valida el feature:
 
 ```powershell
-pnpm add -D github:DanielRamosValenzuela/homero#v0.1.0
-pnpm exec homero init --target . --client copilot --project-name health-policy-contract-ui-any-health-web
-pnpm exec homero discover --target . --force
+pnpm exec homero feature check --target . --id FEAT-042
 ```
 
-Luego, en la IA:
+El comando bloquea el trabajo si faltan Figma, contrato, mocks, criterios,
+evidencia o si no estás en la rama del feature.
+
+## Pedir trabajo a la IA
+
+Abre Copilot o Claude Code dentro del repositorio y usa una instrucción como:
 
 ```text
-Lee docs/homero y ayudame a completar el discovery del producto.
-Hazme preguntas una a una antes de proponer cambios.
+Trabaja el feature FEAT-042 usando features/FEAT-042/feature.json.
+Antes de editar, ejecuta homero feature check --target . --id FEAT-042.
+Usa Tomaco, respeta el Figma aprobado y deja evidencia de Playwright CLI.
 ```
 
-## Ejemplo practico 2: levantar Figma antes de implementar
+Para cambios visuales, Tomaco y Figma son obligatorios. Si el backend no está
+listo, la IA debe usar mocks de desarrollo registrados; nunca mocks como fallback
+de producción.
 
-Con Homero ya instalado, comparte el Figma y pide esto:
+## Verificar el feature
+
+La IA debe guardar screenshots y snapshots de Playwright CLI bajo:
 
 ```text
-Este es el Figma del paso. Antes de proponer codigo, dime que estados UI faltan,
-que componentes deberiamos mapear a Tomaco y que dudas UX hay que aclarar.
+features/FEAT-042/evidence/
 ```
 
-Lo esperado es que la IA no implemente de inmediato. Primero deberia:
-
-- confirmar el node correcto
-- enumerar estados UI faltantes
-- mapear componentes al design system
-- marcar dudas de comportamiento que Figma no responde
-
-## Ejemplo practico 3: levantar contratos y mocks
-
-Si solo tienes cURLs, examples o Postman, usa a la IA asi:
-
-```text
-Estos cURLs y ejemplos son la referencia backend. Conviertelos en un contrato
-draft, enumera los mocks necesarios y marca lo que aun hay que confirmar con backend.
-```
-
-Lo esperado es que la IA:
-
-- registre la fuente del contrato en `docs/homero/contracts.md`
-- proponga la estrategia de mocks
-- enumere estados success, empty, validation error, business error y server error
-- deje claros los supuestos pendientes
-
-## Ejemplo practico 4: preparar un feature antes de codificar
-
-```text
-Con docs/homero, este Figma y estos contratos, crea la spec del feature,
-luego un plan tecnico y despues una lista de tareas ordenadas.
-```
-
-El objetivo es que la IA no salte directo a codigo. Primero debe dejar claro:
-
-- que se construye y por que
-- que archivos deberian cambiar
-- que patrones del repo reutilizara
-- que validaciones y mocks necesita
-
-## Ejemplo practico 5: generar un formulario repetido
-
-Cuando el trabajo sea estructural y repetido, usa el generador:
+Cuando termine, ejecuta:
 
 ```powershell
-pnpm exec homero generate form --target . --name UserInfoForm --country cl
+pnpm exec homero verify --target . --id FEAT-042
 ```
 
-Esto sirve para acelerar estructura. No reemplaza discovery, Figma ni reglas de negocio.
+Homero ejecuta lint, typecheck, tests y E2E según `homero.config.json`. Si pasan,
+genera un receipt bajo `features/FEAT-042/receipts/` para revisión humana.
 
-## Ejemplo practico 6: validar el harness
+## Comandos
+
+| Comando | Uso |
+| --- | --- |
+| `homero init` | Instala Homero y los adapters de IA. |
+| `homero discover` | Registra el contexto del proyecto. |
+| `homero validate` | Valida la instalación de Homero. |
+| `homero setup playwright` | Instala Playwright localmente. |
+| `homero feature create` | Crea una rama y los artefactos del feature. |
+| `homero feature check` | Valida que el feature esté listo para trabajar. |
+| `homero verify` | Ejecuta verificaciones y genera el receipt. |
+| `homero generate form` | Genera un formulario repetitivo por país. |
+
+Usa `pnpm exec homero <comando> --help` para ver los argumentos disponibles.
+
+## Desarrollo local
+
+Dentro de este repositorio:
 
 ```powershell
-pnpm exec homero validate --target . --client copilot
-```
-
-Usalo cuando:
-
-- terminas de instalar Homero
-- actualizas archivos base del harness
-- quieres comprobar que el repo mantiene el contrato esperado
-
-## Que instala Homero
-
-Homero instala o gestiona:
-
-- `AGENTS.md`
-- `CLAUDE.md`
-- `homero.config.json`
-- `docs/homero/`
-- `specs/_template/`
-- instrucciones de Copilot bajo `.github/`
-- agentes de Copilot bajo `.github/agents/`
-- adapters de Claude bajo `.claude/`
-- `scripts/homero/new-form.mjs`
-- `mcp.example.json`
-
-## Como debe trabajar la IA dentro del repo
-
-Para features no triviales, la IA debe seguir este flujo:
-
-```text
-discover -> specify -> plan -> tasks -> implement -> verify -> converge
-```
-
-Y antes de implementar debe levantar, cuando aplique:
-
-1. objetivo del usuario y estado de exito
-2. pais o variante
-3. Figma correcto
-4. contrato backend o insumo equivalente
-5. estados mock requeridos
-
-Si falta una de esas piezas y bloquea el trabajo, la IA debe preguntar antes de
-inventar.
-
-## Desarrollo local de Homero
-
-Si estas trabajando dentro de este repo, puedes ejecutar el CLI directamente:
-
-```powershell
-node .\packages\cli\bin\homero.mjs init --target D:\path\to\repo --client copilot --project-name mi-proyecto
-node .\packages\cli\bin\homero.mjs discover --target D:\path\to\repo --force
-node .\packages\cli\bin\homero.mjs validate --target D:\path\to\repo --client copilot
-node .\packages\cli\bin\homero.mjs generate form --target D:\path\to\repo --name UserInfoForm --country cl
-```
-
-Self-test del repo:
-
-```powershell
+npm run homero -- init --target C:\ruta\al\repo --client both --project-name mi-proyecto
 npm run validate:self
 ```

@@ -7,13 +7,17 @@ Before making non-trivial frontend changes, read:
 3. `docs/homero/architecture.md`
 4. `docs/homero/conventions.md`
 5. `docs/homero/verification.md`
+6. `docs/homero/playwright-cli.md`
 
 Use Homero as the harness contract:
 
-- Preserve Tomaco and existing project conventions over generated CSS or Tailwind-style output.
-- Treat Figma as input that must be adapted to the repo, not copied literally.
+- Start every non-trivial feature with `homero feature create`; it creates the required local feature branch and contract. Do not create commits.
+- Use Tomaco and existing project conventions over generated CSS or Tailwind-style output. Tomaco is mandatory.
+- Require and record the approved Figma URL, node, and version before implementing visible UI.
 - For backend-dependent features, request a contract source, draft contract, or explicit no-contract exception before inventing payloads.
-- Use realistic anonymized mocks so frontend work can proceed before backend integration.
+- Register realistic anonymized mocks from the API or draft contract. Mocks are development-only and cannot be production fallbacks.
 - Ask for missing business context when behavior is ambiguous.
 - Prefer `scripts/homero/new-form.mjs` for repeated form scaffolds.
-- Close tasks with the verification steps listed in `docs/homero/verification.md`.
+- Use Playwright CLI in the feature session to run user flows and save a screenshot plus snapshot for every scenario under `features/<id>/evidence/`.
+- Run `homero feature check` before implementation and `homero verify` before claiming completion.
+- Do not commit, push, create a pull request, merge, or modify Figma.

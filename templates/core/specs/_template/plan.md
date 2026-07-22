@@ -1,5 +1,12 @@
 # Feature plan: <feature-name>
 
+## Delivery boundary
+
+- Feature ID: __FEATURE_ID__
+- Figma source: __FIGMA_URL__
+- Figma approved version: __FIGMA_VERSION__
+- Required design system: Tomaco
+
 ## Technical summary
 
 -
@@ -41,4 +48,6 @@
 - lint:
 - typecheck:
 - test:
-- visual/design check:
+- e2e:
+- visual/design check: desktop and mobile against approved baselines
+- Playwright CLI scenarios and evidence paths:

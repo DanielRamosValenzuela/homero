@@ -1,10 +1,16 @@
 {
+  "schemaVersion": 1,
   "projectName": "__PROJECT_NAME__",
   "packageManager": "pnpm",
+  "product": {
+    "portfolio": "Falabella Seguros",
+    "designSystem": "Tomaco"
+  },
   "commands": {
     "lint": "pnpm lint",
     "typecheck": "pnpm exec tsc --noEmit",
-    "test": "pnpm test"
+    "test": "pnpm test",
+    "e2e": "pnpm exec playwright test"
   },
   "paths": {
     "uiRoot": "src/ui",
@@ -13,7 +19,14 @@
     "storesRoot": "src/store"
   },
   "figma": {
-    "mcpExampleFile": "mcp.example.json"
+    "mcpExampleFile": "mcp.example.json",
+    "requiredForVisualChanges": true,
+    "visualDiffThreshold": 0.01
+  },
+  "playwright": {
+    "cliCommand": "pnpm exec playwright-cli",
+    "evidenceRoot": "features/<id>/evidence",
+    "testCommand": "pnpm exec playwright test"
   },
   "contracts": {
     "mode": "contract-draft",
@@ -23,6 +36,14 @@
     "mockLocation": "src/mocks",
     "states": "success, loading, empty, validation error, business error, network/server error",
     "sensitiveDataPolicy": "anonymized-only"
+  },
+  "workspace": {
+    "featureBranchPrefix": "feature/",
+    "humanCommitRequired": true,
+    "allowHomeroCommit": false,
+    "allowHomeroPush": false,
+    "allowHomeroPullRequest": false,
+    "allowHomeroMerge": false
   },
   "agents": {
     "workflow": "discover -> specify -> plan -> tasks -> implement -> verify -> converge",
