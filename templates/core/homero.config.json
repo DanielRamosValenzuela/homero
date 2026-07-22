@@ -39,11 +39,16 @@
   },
   "workspace": {
     "featureBranchPrefix": "feature/",
+    "worktreeRoot": "../.homero-worktrees",
     "humanCommitRequired": true,
     "allowHomeroCommit": false,
     "allowHomeroPush": false,
     "allowHomeroPullRequest": false,
     "allowHomeroMerge": false
+  },
+  "runtime": {
+    "maxIterations": 10,
+    "maxAttemptsPerTask": 3
   },
   "agents": {
     "workflow": "discover -> specify -> plan -> tasks -> implement -> verify -> converge",

@@ -46,6 +46,11 @@ function usage() {
   homero feature create --target <repo> --id <id> --name <name> --figma <url> --figma-version <version> --contract-mode <contract-first|contract-draft|no-backend-exception> [--contract-source <source>] [--contract-exception <reason>]
   homero feature check --target <repo> --id <id>
   homero verify --target <repo> --id <id>
+  homero run --target <repo> --id <id>
+  homero task add --target <repo> --id <id> --title <title> [--paths <path,...>]
+  homero task verify --target <repo> --id <id> --task <task-id> --summary <summary>
+  homero task block --target <repo> --id <id> --task <task-id> --reason <reason>
+  homero task status --target <repo> --id <id>
   homero setup playwright --target <repo> [--dry-run]`);
 }
 
@@ -556,8 +561,15 @@ function featurePaths(targetRoot, id, name) {
     featureDir: path.join(targetRoot, "features", id),
     specDir: path.join(targetRoot, "specs", `${id}-${slug}`),
     featurePath: path.join(targetRoot, "features", id, "feature.json"),
-    evidencePath: path.join(targetRoot, "features", id, "evidence", "playwright-cli.json")
+    evidencePath: path.join(targetRoot, "features", id, "evidence", "playwright-cli.json"),
+    statePath: path.join(targetRoot, "features", id, "state.json"),
+    eventsPath: path.join(targetRoot, "features", id, "events.ndjson")
   };
+}
+
+function featureWorktreePath(targetRoot, id, config) {
+  const worktreeRoot = config.workspace?.worktreeRoot || "../.homero-worktrees";
+  return path.join(path.resolve(targetRoot, worktreeRoot), path.basename(targetRoot), id);
 }
 
 function featureTemplate({ id, name, branch, figmaUrl, figmaVersion, contractMode, contractSource, contractException, config }) {
@@ -619,6 +631,50 @@ function playwrightCliEvidenceTemplate(id) {
     session: `homero-${id}`,
     scenarios: []
   };
+}
+
+function loopStateTemplate(feature, config) {
+  return {
+    schemaVersion: 1,
+    featureId: feature.id,
+    phase: "ready",
+    activeTaskId: null,
+    limits: {
+      maxIterations: config.runtime?.maxIterations ?? 10,
+      maxAttemptsPerTask: config.runtime?.maxAttemptsPerTask ?? 3
+    },
+    iterations: 0,
+    tasks: [],
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function readLoopState(featureDir) {
+  const statePath = path.join(featureDir, "state.json");
+
+  if (!fs.existsSync(statePath)) {
+    fail(`Loop state not found: ${statePath}`);
+  }
+
+  return {
+    statePath,
+    state: readJsonFile(statePath, "Loop state")
+  };
+}
+
+function appendLoopEvent(featureDir, event) {
+  const eventPath = path.join(featureDir, "events.ndjson");
+  const record = {
+    at: new Date().toISOString(),
+    ...event
+  };
+
+  fs.appendFileSync(eventPath, `${JSON.stringify(record)}\n`, "utf8");
+}
+
+function writeLoopState(featureDir, state) {
+  state.updatedAt = new Date().toISOString();
+  writeJsonFile(path.join(featureDir, "state.json"), state);
 }
 
 function fillFeatureTemplate(templatePath, destinationPath, replacements) {
@@ -801,31 +857,58 @@ function playwrightEvidenceErrors(featureDir, feature) {
 
 function readFeature(targetRoot, id) {
   validateFeatureId(id);
-  const featurePath = path.join(targetRoot, "features", id, "feature.json");
+  const workspaceRoot = findFeatureWorkspace(targetRoot, id);
+  const featurePath = path.join(workspaceRoot, "features", id, "feature.json");
 
   if (!fs.existsSync(featurePath)) {
     fail(`Feature contract not found: ${featurePath}`);
   }
 
   return {
+    workspaceRoot,
     featurePath,
     featureDir: path.dirname(featurePath),
     feature: readJsonFile(featurePath, "feature.json")
   };
 }
 
+function findFeatureWorkspace(targetRoot, id) {
+  const directFeaturePath = path.join(targetRoot, "features", id, "feature.json");
+  if (fs.existsSync(directFeaturePath)) {
+    return targetRoot;
+  }
+
+  const result = git(targetRoot, ["worktree", "list", "--porcelain"]);
+  if (result.status !== 0) {
+    fail("Could not inspect Git worktrees for the requested feature.");
+  }
+
+  const worktrees = result.stdout
+    .split("\n")
+    .filter(line => line.startsWith("worktree "))
+    .map(line => line.slice("worktree ".length));
+
+  for (const worktree of worktrees) {
+    if (fs.existsSync(path.join(worktree, "features", id, "feature.json"))) {
+      return worktree;
+    }
+  }
+
+  fail(`Feature ${id} was not found in this repository or its worktrees.`);
+}
+
 function featureCheck(targetRoot, id) {
-  const { featureDir, feature } = readFeature(targetRoot, id);
+  const { workspaceRoot, featureDir, feature } = readFeature(targetRoot, id);
   const errors = [
-    ...featureErrors(targetRoot, feature),
+    ...featureErrors(workspaceRoot, feature),
     ...playwrightEvidenceErrors(featureDir, feature)
   ];
 
   if (errors.length > 0) {
-    return { feature, featureDir, errors };
+    return { feature, featureDir, workspaceRoot, errors };
   }
 
-  return { feature, featureDir, errors: [] };
+  return { feature, featureDir, workspaceRoot, errors: [] };
 }
 
 function featureCreate() {
@@ -846,7 +929,7 @@ function featureCreate() {
   validateFeatureId(id);
   const targetRoot = path.resolve(targetArg);
   const config = readConfig(targetRoot);
-  const paths = featurePaths(targetRoot, id, name);
+  const worktreePath = featureWorktreePath(targetRoot, id, config);
 
   if (!fs.existsSync(path.join(targetRoot, "homero.config.json"))) {
     fail("homero feature create requires a Homero-initialized repository.");
@@ -864,21 +947,29 @@ function featureCreate() {
     fail("Backend-dependent features require --contract-source.");
   }
 
-  if (fs.existsSync(paths.featureDir) || fs.existsSync(paths.specDir)) {
+  if (fs.existsSync(worktreePath)) {
+    fail(`Feature worktree already exists: ${worktreePath}`);
+  }
+
+  if (fs.existsSync(path.join(targetRoot, "features", id))) {
     fail(`Feature artifacts already exist for ${id}.`);
   }
 
   ensureCleanGitRepo(targetRoot);
 
-  const branchResult = git(targetRoot, ["switch", "-c", paths.branch]);
-  if (branchResult.status !== 0) {
-    fail(`Could not create branch ${paths.branch}: ${branchResult.stderr.trim()}`);
+  const branch = `feature/${id}-${slugify(name)}`;
+  fs.mkdirSync(path.dirname(worktreePath), { recursive: true });
+  const worktreeResult = git(targetRoot, ["worktree", "add", "-b", branch, worktreePath, "HEAD"]);
+  if (worktreeResult.status !== 0) {
+    fail(`Could not create worktree for ${branch}: ${worktreeResult.stderr.trim()}`);
   }
+
+  const paths = featurePaths(worktreePath, id, name);
 
   const feature = featureTemplate({
     id,
     name,
-    branch: paths.branch,
+    branch,
     figmaUrl,
     figmaVersion,
     contractMode,
@@ -889,6 +980,12 @@ function featureCreate() {
 
   writeJsonFile(paths.featurePath, feature);
   writeJsonFile(paths.evidencePath, playwrightCliEvidenceTemplate(id));
+  writeJsonFile(paths.statePath, loopStateTemplate(feature, config));
+  appendLoopEvent(paths.featureDir, {
+    type: "feature-created",
+    branch,
+    worktree: worktreePath
+  });
 
   const specTemplate = path.join(targetRoot, "specs", "_template", "spec.md");
   const planTemplate = path.join(targetRoot, "specs", "_template", "plan.md");
@@ -915,9 +1012,10 @@ function featureCreate() {
     fillFeatureTemplate(templatePath, destinationPath, replacements);
   }
 
-  console.log(`Feature ${id} created on ${paths.branch}`);
-  console.log(`Contract: ${path.relative(targetRoot, paths.featurePath)}`);
-  console.log(`Spec: ${path.relative(targetRoot, path.join(paths.specDir, "spec.md"))}`);
+  console.log(`Feature ${id} created on ${branch}`);
+  console.log(`Worktree: ${worktreePath}`);
+  console.log(`Contract: ${path.relative(worktreePath, paths.featurePath)}`);
+  console.log(`Spec: ${path.relative(worktreePath, path.join(paths.specDir, "spec.md"))}`);
   console.log("The feature remains draft until Homero gates pass.");
 }
 
@@ -972,9 +1070,10 @@ function verifyFeature() {
 
   const targetRoot = path.resolve(targetArg);
   const config = readConfig(targetRoot);
-  const { featurePath, featureDir, feature } = readFeature(targetRoot, id);
+  const { workspaceRoot, featurePath, featureDir, feature } = readFeature(targetRoot, id);
+  const workspaceConfig = readConfig(workspaceRoot);
   const gateErrors = [
-    ...featureErrors(targetRoot, feature),
+    ...featureErrors(workspaceRoot, feature),
     ...playwrightEvidenceErrors(featureDir, feature)
   ];
 
@@ -990,7 +1089,7 @@ function verifyFeature() {
   const commandResults = [];
 
   for (const commandName of commandNames) {
-    const command = config.commands?.[commandName];
+    const command = workspaceConfig.commands?.[commandName];
     if (!command || typeof command !== "string") {
       commandResults.push({
         name: commandName,
@@ -1003,7 +1102,7 @@ function verifyFeature() {
       continue;
     }
 
-    const result = runVerificationCommand(targetRoot, commandName, command);
+    const result = runVerificationCommand(workspaceRoot, commandName, command);
     commandResults.push(result);
     process.stdout.write(result.stdout);
     process.stderr.write(result.stderr);
@@ -1016,8 +1115,8 @@ function verifyFeature() {
   const receipt = {
     schemaVersion: 1,
     featureId: feature.id,
-    branch: gitText(targetRoot, ["branch", "--show-current"]),
-    gitHead: gitText(targetRoot, ["rev-parse", "HEAD"]),
+    branch: gitText(workspaceRoot, ["branch", "--show-current"]),
+    gitHead: gitText(workspaceRoot, ["rev-parse", "HEAD"]),
     createdAt,
     status: passed ? "passed" : "failed",
     checks: commandResults,
