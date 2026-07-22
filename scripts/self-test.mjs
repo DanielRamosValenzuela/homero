@@ -67,7 +67,8 @@ run([
   "--figma", "https://www.figma.com/design/example/quote?node-id=1-2",
   "--figma-version", "approved-v1",
   "--contract-mode", "contract-draft",
-  "--contract-source", "docs/contracts/quote.openapi.yaml"
+  "--contract-source", "docs/contracts/quote.openapi.yaml",
+  "--countries", "CL, pe"
 ]);
 runExpectFailure(["feature", "check", "--target", targetRoot, "--id", "FEAT-001"]);
 
@@ -83,6 +84,12 @@ const featurePath = path.join(featureDir, "feature.json");
 const playwrightEvidencePath = path.join(featureDir, "evidence", "playwright-cli.json");
 const featureConfigPath = path.join(featureWorktree, "homero.config.json");
 const config = JSON.parse(fs.readFileSync(path.join(targetRoot, "homero.config.json"), "utf8"));
+
+const createdFeature = JSON.parse(fs.readFileSync(featurePath, "utf8"));
+if (JSON.stringify(createdFeature.product?.countries) !== JSON.stringify(["cl", "pe"])) {
+  console.error(`Expected product.countries to normalize to ["cl","pe"], got ${JSON.stringify(createdFeature.product?.countries)}`);
+  process.exit(1);
+}
 
 if (!fs.existsSync(generatedForm)) {
   console.error(`Expected generated form not found: ${generatedForm}`);

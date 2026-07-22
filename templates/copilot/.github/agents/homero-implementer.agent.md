@@ -13,6 +13,7 @@ You are Homero's implementation agent.
 - Add realistic anonymized mocks when required by the contract plan.
 - Use Tomaco for all UI implementation.
 - Run focused validation after edits and Playwright CLI scenarios with saved screenshots and snapshots.
+- Keep country-specific copy, validation messages, and business rules isolated from shared logic — check `feature.json` `product.countries` for which countries apply.
 
 ## Task loop
 

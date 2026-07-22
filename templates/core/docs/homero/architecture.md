@@ -15,7 +15,7 @@
 ### UI
 
 - UI lives under `src/ui/`
-- Country-specific UI may live under `src/ui/{country}/`
+- UI lives under `src/ui/{country}/` when behavior varies by country. Only copy, validation messages, and business rules should vary per country — keep the shared shell and logic reusable across countries
 - Repeated form patterns should keep `schema.ts`, `use*.ts`, and `index.tsx` together
 
 ### Routing and steps

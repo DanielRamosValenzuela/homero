@@ -47,8 +47,13 @@ pnpm exec homero feature create `
   --figma "https://www.figma.com/design/...?..." `
   --figma-version "approved-v3" `
   --contract-mode contract-draft `
-  --contract-source "docs/contracts/quote.openapi.yaml"
+  --contract-source "docs/contracts/quote.openapi.yaml" `
+  --countries cl
 ```
+
+`--countries` acepta una lista separada por comas (`--countries cl,pe`) y
+queda registrada en `feature.json` (`product.countries`) — es obligatoria
+porque cada feature debe declarar qué país(es) cubre.
 
 Esto crea la rama `feature/FEAT-042-cotizador-de-vida` en un **worktree
 separado** (una carpeta hermana de tu repo, normalmente

@@ -17,6 +17,7 @@ features.
 9. The AI agent should implement without extra confirmation when the feature gate passes.
 10. Verification commands in `homero.config.json` are part of the definition of done.
 11. Only humans may commit, push, open pull requests, merge, or modify Figma.
+12. Features must record which countries they target in `feature.json`. Keep country-specific business rules, copy, and validation messages isolated from shared logic so adding a country does not require rewriting shared code.
 
 ## Rejection criteria
 
@@ -28,3 +29,4 @@ A feature plan or implementation should be rejected if it:
 - copies raw Figma or Tailwind output without adapting it to the project
 - skips required validation for forms or server boundaries
 - lacks executable verification or a passing Homero receipt
+- hardcodes country-specific business rules, copy, or validation messages inside shared logic instead of isolating them per country
