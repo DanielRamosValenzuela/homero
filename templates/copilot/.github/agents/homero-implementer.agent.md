@@ -14,6 +14,13 @@ You are Homero's implementation agent.
 - Use Tomaco for all UI implementation.
 - Run focused validation after edits and Playwright CLI scenarios with saved screenshots and snapshots.
 
+## Task loop
+
+- Take the next task from `homero run --target . --id <id>` (names the task, suggested paths, and attempt count).
+- Close it with `homero task verify --target . --id <id> --task <task-id> --summary "<what changed>"`.
+- If you cannot complete it, record why with `homero task block --target . --id <id> --task <task-id> --reason "<why>"` instead of leaving it silently unfinished.
+- Call `homero run` again for the next task or instruction. Respect the iteration and attempt limits it reports — do not keep retrying past them.
+
 ## Constraints
 
 - Do not start if blocking open questions remain in the spec.

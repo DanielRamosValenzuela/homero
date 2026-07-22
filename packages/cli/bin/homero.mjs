@@ -677,6 +677,80 @@ function writeLoopState(featureDir, state) {
   writeJsonFile(path.join(featureDir, "state.json"), state);
 }
 
+const statusByPhase = {
+  ready: "ready",
+  implementing: "implementing",
+  verifying: "verifying",
+  "needs-review": "needs-review",
+  accepted: "accepted"
+};
+
+function ensureLoopState(featureDir, feature, config) {
+  const statePath = path.join(featureDir, "state.json");
+
+  if (fs.existsSync(statePath)) {
+    return readLoopState(featureDir).state;
+  }
+
+  const state = loopStateTemplate(feature, config);
+  writeLoopState(featureDir, state);
+  appendLoopEvent(featureDir, { type: "state-initialized" });
+  return state;
+}
+
+function syncFeatureStatus(featurePath, feature, phase) {
+  const status = statusByPhase[phase];
+  if (!status) {
+    return;
+  }
+
+  feature.status = status;
+  writeJsonFile(featurePath, feature);
+}
+
+function nextTaskId(state) {
+  const maxSuffix = state.tasks.reduce((max, task) => {
+    const match = /^T-(\d+)$/.exec(task.id);
+    return match ? Math.max(max, Number(match[1])) : max;
+  }, 0);
+
+  return `T-${String(maxSuffix + 1).padStart(3, "0")}`;
+}
+
+function selectNextTask(state) {
+  const active = state.tasks.find(task => task.id === state.activeTaskId && task.status === "in-progress");
+  return active || state.tasks.find(task => task.status === "pending") || null;
+}
+
+function readLastEvents(featureDir, count) {
+  const eventsPath = path.join(featureDir, "events.ndjson");
+
+  if (!fs.existsSync(eventsPath)) {
+    return [];
+  }
+
+  const lines = fs.readFileSync(eventsPath, "utf8").split("\n").filter(Boolean);
+  return lines.slice(-count).map(line => JSON.parse(line));
+}
+
+function implementBrief(feature, state, task) {
+  const lines = [
+    `Feature ${feature.id}: iteration ${state.iterations}/${state.limits.maxIterations}`,
+    `Task ${task.id}: ${task.title}`
+  ];
+
+  if (task.paths.length > 0) {
+    lines.push(`Suggested paths: ${task.paths.join(", ")}`);
+  }
+
+  lines.push(`Attempts so far: ${task.attempts}/${state.limits.maxAttemptsPerTask}`);
+  lines.push("Use Tomaco and follow the approved spec/plan for this feature.");
+  lines.push(`When done: homero task verify --target <repo> --id ${feature.id} --task ${task.id} --summary "<what changed>"`);
+  lines.push(`If blocked: homero task block --target <repo> --id ${feature.id} --task ${task.id} --reason "<why>"`);
+
+  return lines.join("\n");
+}
+
 function fillFeatureTemplate(templatePath, destinationPath, replacements) {
   let content = fs.readFileSync(templatePath, "utf8");
 
@@ -1151,6 +1225,338 @@ function feature() {
   fail(`Unknown feature command: ${featureCommand || "<missing>"}`);
 }
 
+function runLoop() {
+  const targetArg = readArg("--target");
+  const id = readArg("--id");
+  const asJson = hasFlag("--json");
+
+  if (!targetArg || !id || hasFlag("--help")) {
+    usage();
+    process.exit(targetArg && id ? 0 : 1);
+  }
+
+  const targetRoot = path.resolve(targetArg);
+  const { workspaceRoot, featurePath, featureDir, feature } = readFeature(targetRoot, id);
+  const config = readConfig(workspaceRoot);
+  const state = ensureLoopState(featureDir, feature, config);
+
+  const contractErrors = featureErrors(workspaceRoot, feature);
+  if (contractErrors.length > 0) {
+    console.error(`Feature ${id} is not ready for the loop:`);
+    for (const error of contractErrors) {
+      console.error(`- ${error}`);
+    }
+    process.exit(1);
+  }
+
+  const next = selectNextTask(state);
+  let brief;
+
+  if (next) {
+    const limit = state.limits.maxIterations ?? config.runtime?.maxIterations ?? 10;
+
+    if (state.iterations >= limit) {
+      state.phase = "exhausted";
+      writeLoopState(featureDir, state);
+      appendLoopEvent(featureDir, { type: "run-exhausted", iteration: state.iterations, limit });
+      fail(`error_max_iterations: ${feature.id} reached maxIterations (${limit}). Phase 'exhausted'. Reset state.json or raise runtime.maxIterations.`);
+    }
+
+    const now = new Date().toISOString();
+    state.iterations += 1;
+    next.status = "in-progress";
+    next.startedAt = next.startedAt || now;
+    next.updatedAt = now;
+    state.activeTaskId = next.id;
+    state.phase = "implementing";
+    syncFeatureStatus(featurePath, feature, "implementing");
+    brief = implementBrief(feature, state, next);
+  } else if (state.tasks.length === 0) {
+    state.phase = "ready";
+    brief = 'No tasks yet. Add them with `homero task add --target <repo> --id <id> --title "<title>"`.';
+  } else {
+    const openTasks = state.tasks.filter(task => task.status === "pending" || task.status === "in-progress");
+    const blockedOnly = openTasks.length === 0 && state.tasks.some(task => task.status === "blocked");
+
+    if (blockedOnly) {
+      state.phase = "blocked";
+      brief = "Only blocked tasks remain. Resolve or split them before continuing.";
+    } else {
+      const receiptPath = feature.receipt ? path.join(featureDir, feature.receipt) : null;
+      const receipt = receiptPath && fs.existsSync(receiptPath) ? readJsonFile(receiptPath, "Verification receipt") : null;
+
+      if (receipt && receipt.status === "passed") {
+        state.phase = "needs-review";
+        syncFeatureStatus(featurePath, feature, "needs-review");
+        brief = "Verification passed. Awaiting human review; do not self-accept.";
+      } else {
+        state.phase = "verifying";
+        syncFeatureStatus(featurePath, feature, "verifying");
+        brief = "All tasks done. Run `homero verify`, then `homero run` again.";
+      }
+    }
+  }
+
+  writeLoopState(featureDir, state);
+  appendLoopEvent(featureDir, {
+    type: "run-iteration",
+    iteration: state.iterations,
+    phase: state.phase,
+    taskId: state.activeTaskId
+  });
+
+  if (asJson) {
+    console.log(JSON.stringify({ phase: state.phase, iterations: state.iterations, activeTaskId: state.activeTaskId, brief }, null, 2));
+    return;
+  }
+
+  console.log(brief);
+}
+
+function taskAdd() {
+  const targetArg = readArg("--target");
+  const id = readArg("--id");
+  const title = readArg("--title");
+  const pathsArg = readArg("--paths");
+
+  if (!targetArg || !id || !title || hasFlag("--help")) {
+    usage();
+    process.exit(targetArg && id && title ? 0 : 1);
+  }
+
+  const targetRoot = path.resolve(targetArg);
+  const { workspaceRoot, featureDir, feature } = readFeature(targetRoot, id);
+  const config = readConfig(workspaceRoot);
+  const state = ensureLoopState(featureDir, feature, config);
+
+  const trimmedTitle = title.trim();
+  const existing = state.tasks.find(task => task.status !== "done" && task.title === trimmedTitle);
+
+  if (existing) {
+    console.log(`Task already tracked: ${existing.id} ${existing.title}`);
+    return;
+  }
+
+  const now = new Date().toISOString();
+  const task = {
+    id: nextTaskId(state),
+    title: trimmedTitle,
+    paths: pathsArg ? pathsArg.split(",").map(value => value.trim()).filter(Boolean) : [],
+    status: "pending",
+    attempts: 0,
+    summary: null,
+    blockReason: null,
+    createdAt: now,
+    startedAt: null,
+    updatedAt: now,
+    completedAt: null
+  };
+
+  state.tasks.push(task);
+  writeLoopState(featureDir, state);
+  appendLoopEvent(featureDir, { type: "task-added", taskId: task.id, title: task.title, paths: task.paths });
+
+  console.log(`Task ${task.id} added: ${task.title}`);
+}
+
+function taskVerify() {
+  const targetArg = readArg("--target");
+  const id = readArg("--id");
+  const taskId = readArg("--task");
+  const summary = readArg("--summary");
+
+  if (!targetArg || !id || !taskId || !summary || hasFlag("--help")) {
+    usage();
+    process.exit(targetArg && id && taskId && summary ? 0 : 1);
+  }
+
+  const targetRoot = path.resolve(targetArg);
+  const { workspaceRoot, featurePath, featureDir, feature } = readFeature(targetRoot, id);
+  const config = readConfig(workspaceRoot);
+  const state = ensureLoopState(featureDir, feature, config);
+
+  const task = state.tasks.find(candidate => candidate.id === taskId);
+  if (!task) {
+    fail(`Task not found: ${taskId}`);
+  }
+
+  if (task.status === "done") {
+    console.log(`Task ${taskId} is already done.`);
+    return;
+  }
+
+  if (task.status === "blocked") {
+    fail(`Task ${taskId} is blocked and cannot be verified directly.`);
+  }
+
+  if (feature.receipt) {
+    const receiptPath = path.join(featureDir, feature.receipt);
+    if (fs.existsSync(receiptPath)) {
+      const receipt = readJsonFile(receiptPath, "Verification receipt");
+      if (receipt.status === "failed") {
+        console.warn(`WARNING: latest verification receipt for ${feature.id} is failed.`);
+      }
+    }
+  }
+
+  const now = new Date().toISOString();
+  task.status = "done";
+  task.summary = summary;
+  task.completedAt = now;
+  task.updatedAt = now;
+
+  if (state.activeTaskId === task.id) {
+    const next = state.tasks.find(candidate => candidate.status === "pending");
+    state.activeTaskId = next ? next.id : null;
+  }
+
+  const hasOpenTasks = state.tasks.some(candidate => candidate.status === "pending" || candidate.status === "in-progress");
+  if (!hasOpenTasks) {
+    state.phase = "verifying";
+    syncFeatureStatus(featurePath, feature, "verifying");
+  }
+
+  writeLoopState(featureDir, state);
+  appendLoopEvent(featureDir, { type: "task-verified", taskId: task.id, summary });
+
+  console.log(`Task ${task.id} verified: ${summary}`);
+  console.log(hasOpenTasks ? "Run `homero run` to continue." : "All tasks done. Run `homero verify`, then `homero run`.");
+}
+
+function taskBlock() {
+  const targetArg = readArg("--target");
+  const id = readArg("--id");
+  const taskId = readArg("--task");
+  const reason = readArg("--reason");
+
+  if (!targetArg || !id || !taskId || !reason || hasFlag("--help")) {
+    usage();
+    process.exit(targetArg && id && taskId && reason ? 0 : 1);
+  }
+
+  const targetRoot = path.resolve(targetArg);
+  const { workspaceRoot, featureDir, feature } = readFeature(targetRoot, id);
+  const config = readConfig(workspaceRoot);
+  const state = ensureLoopState(featureDir, feature, config);
+
+  const task = state.tasks.find(candidate => candidate.id === taskId);
+  if (!task) {
+    fail(`Task not found: ${taskId}`);
+  }
+
+  if (task.status === "done") {
+    fail(`Task ${taskId} is already done and cannot be blocked.`);
+  }
+
+  const limit = state.limits.maxAttemptsPerTask ?? config.runtime?.maxAttemptsPerTask ?? 3;
+  const now = new Date().toISOString();
+
+  task.attempts += 1;
+  task.blockReason = reason;
+  task.updatedAt = now;
+
+  const terminal = task.attempts >= limit;
+  task.status = terminal ? "blocked" : "pending";
+
+  if (state.activeTaskId === task.id) {
+    state.activeTaskId = null;
+  }
+
+  if (terminal) {
+    const hasOpenTasks = state.tasks.some(candidate => candidate.status === "pending" || candidate.status === "in-progress");
+    if (!hasOpenTasks) {
+      state.phase = "blocked";
+    }
+  }
+
+  writeLoopState(featureDir, state);
+  appendLoopEvent(featureDir, {
+    type: "task-blocked",
+    taskId: task.id,
+    reason,
+    attempts: task.attempts,
+    limit,
+    terminal
+  });
+
+  if (terminal) {
+    fail(`error_max_attempts_per_task: task ${task.id} reached maxAttemptsPerTask (${limit}). Marked blocked; resolve manually or split the task.`);
+  }
+
+  console.log(`Task ${task.id} blocked (attempt ${task.attempts}/${limit}); returned to queue.`);
+}
+
+function taskStatus() {
+  const targetArg = readArg("--target");
+  const id = readArg("--id");
+  const asJson = hasFlag("--json");
+
+  if (!targetArg || !id || hasFlag("--help")) {
+    usage();
+    process.exit(targetArg && id ? 0 : 1);
+  }
+
+  const targetRoot = path.resolve(targetArg);
+  const { workspaceRoot, featureDir, feature } = readFeature(targetRoot, id);
+  const config = readConfig(workspaceRoot);
+  const state = ensureLoopState(featureDir, feature, config);
+  const recentEvents = readLastEvents(featureDir, 5);
+
+  if (asJson) {
+    console.log(JSON.stringify({ state, recentEvents }, null, 2));
+    return;
+  }
+
+  console.log(`Feature ${feature.id}  phase=${state.phase}  iterations=${state.iterations}/${state.limits.maxIterations}`);
+
+  const activeTask = state.tasks.find(task => task.id === state.activeTaskId);
+  console.log(`Active task: ${activeTask ? `${activeTask.id} ${activeTask.title}` : "none"}`);
+
+  if (state.tasks.length === 0) {
+    console.log("Tasks: none yet. Add one with `homero task add`.");
+  } else {
+    console.log("Tasks:");
+    for (const task of state.tasks) {
+      console.log(`  [${task.status}] ${task.id} ${task.title} (attempts=${task.attempts}/${state.limits.maxAttemptsPerTask})`);
+    }
+  }
+
+  console.log("Recent events:");
+  if (recentEvents.length === 0) {
+    console.log("  none");
+  } else {
+    for (const event of recentEvents) {
+      console.log(`  ${event.at} ${event.type}`);
+    }
+  }
+}
+
+function task() {
+  const taskCommand = commandArgs[0];
+
+  if (taskCommand === "add") {
+    taskAdd();
+    return;
+  }
+
+  if (taskCommand === "verify") {
+    taskVerify();
+    return;
+  }
+
+  if (taskCommand === "block") {
+    taskBlock();
+    return;
+  }
+
+  if (taskCommand === "status") {
+    taskStatus();
+    return;
+  }
+
+  fail(`Unknown task command: ${taskCommand || "<missing>"}`);
+}
+
 function setupPlaywright() {
   const targetArg = readArg("--target");
   const dryRun = hasFlag("--dry-run");
@@ -1472,6 +1878,16 @@ async function main() {
 
   if (command === "verify") {
     verifyFeature();
+    return;
+  }
+
+  if (command === "run") {
+    runLoop();
+    return;
+  }
+
+  if (command === "task") {
+    task();
     return;
   }
 

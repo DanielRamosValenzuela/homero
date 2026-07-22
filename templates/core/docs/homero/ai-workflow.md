@@ -50,3 +50,22 @@ When the active AI client supports custom agents or subagents, use specialized
 agents for research, planning, contracts, implementation, and review. If the
 client does not support subagents, follow the same role boundaries in one
 session.
+
+## Loop state and resume
+
+Each feature tracks its own progress in `features/<id>/state.json` and
+`features/<id>/events.ndjson`, independent of which AI client is working it.
+These files are the source of truth for resuming after an interruption
+(a new session, a client switch, running out of context).
+
+- Before doing anything on an existing feature, run
+  `homero task status --target . --id <id>` to see the current phase,
+  iteration count, active task, and recent events.
+- Call `homero run --target . --id <id>` to get the next task to implement. It
+  enforces `runtime.maxIterations` and reports the exact next commands.
+- Close a task with `homero task verify --target . --id <id> --task <task-id>
+  --summary "<what changed>"`, or record a failed attempt with
+  `homero task block --target . --id <id> --task <task-id> --reason "<why>"`
+  (bounded by `runtime.maxAttemptsPerTask`).
+- These commands never call an LLM; they are deterministic state updates the
+  agent calls between its own reasoning steps.

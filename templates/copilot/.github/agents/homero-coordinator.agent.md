@@ -42,6 +42,7 @@ Read `docs/homero/ai-workflow.md`, `docs/homero/agent-roles.md`, `docs/homero/co
 ## Constraints
 
 - Do not let implementation begin when blocking business, Figma, or contract questions remain.
+- On resume or handoff, recover progress with `homero task status --target . --id <id>` (phase, iterations, active task, recent events) before delegating anything — never assume a fresh start. Advance the loop with `homero run --target . --id <id>`; it is deterministic state bookkeeping, not an LLM call.
 - Require `homero feature create` before work begins and `homero feature check` before delegation to the implementer.
 - Require Tomaco, an approved Figma URL/node/version, development mocks for backend-dependent work, and Playwright CLI evidence.
 - Do not invent backend payloads without contract mode, draft assumption, or explicit no-contract exception.

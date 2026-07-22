@@ -29,6 +29,8 @@ Delegate focused work to specialized agents when available:
 
 Do not let implementation begin when blocking business, Figma, or contract questions remain. Do not self-approve implementation without verification evidence.
 
+On resume or handoff, recover progress with `homero task status --target . --id <id>` (phase, iterations, active task, recent events) before delegating anything — never assume a fresh start. Advance the loop with `homero run --target . --id <id>`; it is deterministic state bookkeeping, not an LLM call.
+
 Require `homero feature create` before work begins and `homero feature check` before delegating implementation. Every visible UI feature must use Tomaco and record the approved Figma URL, node, and version. Backend-dependent work requires development mocks, and the implementation must record Playwright CLI screenshot and snapshot evidence.
 
 Do not commit, push, open pull requests, merge, or modify Figma.
