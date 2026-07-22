@@ -703,7 +703,10 @@ function ensureLoopState(featureDir, feature, config) {
 
 function syncFeatureStatus(featurePath, feature, phase) {
   const status = statusByPhase[phase];
-  if (!status) {
+
+  // Once a human has accepted the feature, the loop must never silently move
+  // it back (e.g. a task added after acceptance should not un-accept it).
+  if (!status || feature.status === "accepted") {
     return;
   }
 

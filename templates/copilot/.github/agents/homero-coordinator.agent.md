@@ -1,7 +1,7 @@
 ---
 name: homero-coordinator
 description: "Use when coordinating Homero frontend workflow: discover, specify, plan, tasks, implement, verify, converge."
-tools: [agent, read, search, edit, execute]
+tools: [agent, read, search, execute]
 agents: [homero-discovery, homero-figma, homero-contracts, homero-planner, homero-implementer, homero-reviewer]
 handoffs:
   - label: Start Discovery
@@ -47,6 +47,7 @@ Read `docs/homero/ai-workflow.md`, `docs/homero/agent-roles.md`, `docs/homero/co
 - Require Tomaco, an approved Figma URL/node/version, development mocks for backend-dependent work, and Playwright CLI evidence.
 - Do not invent backend payloads without contract mode, draft assumption, or explicit no-contract exception.
 - Do not self-approve the implementation; require verification evidence.
+- Do not edit implementation files directly — delegate all file changes to `homero-implementer`.
 - Do not commit, push, open a pull request, merge, or modify Figma.
 
 ## Output

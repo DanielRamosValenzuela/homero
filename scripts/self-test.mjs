@@ -310,6 +310,28 @@ if (state.phase !== "exhausted") {
   process.exit(1);
 }
 
+// --- Regression: an accepted feature must never be silently un-accepted ---
+state = readState();
+state.limits.maxIterations = state.iterations + 10;
+fs.writeFileSync(path.join(featureDir, "state.json"), `${JSON.stringify(state, null, 2)}\n`, "utf8");
+
+const acceptedFeature = JSON.parse(fs.readFileSync(featurePath, "utf8"));
+acceptedFeature.status = "accepted";
+fs.writeFileSync(featurePath, `${JSON.stringify(acceptedFeature, null, 2)}\n`, "utf8");
+
+run(["run", "--target", targetRoot, "--id", "FEAT-001"]);
+state = readState();
+if (state.phase !== "implementing" || state.activeTaskId !== "T-003") {
+  console.error(`Expected the loop to keep advancing (T-003 in progress), got phase=${state.phase} activeTaskId=${state.activeTaskId}`);
+  process.exit(1);
+}
+
+const featureAfterAccept = JSON.parse(fs.readFileSync(featurePath, "utf8"));
+if (featureAfterAccept.status !== "accepted") {
+  console.error(`Expected feature.json status to stay 'accepted' once a human accepted it, got ${featureAfterAccept.status}`);
+  process.exit(1);
+}
+
 // --- Resilience: a missing state.json is recreated lazily instead of crashing ---
 fs.rmSync(path.join(featureDir, "state.json"));
 run(["task", "status", "--target", targetRoot, "--id", "FEAT-001"]);
