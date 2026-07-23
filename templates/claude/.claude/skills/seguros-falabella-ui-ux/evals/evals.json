@@ -1,0 +1,35 @@
+{
+  "skill_name": "seguros-falabella-ui-ux",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Design a new insurance quote screen for Seguros Falabella with a primary form, a summary panel, and final actions. Keep it aligned with the Falabella UI foundations and existing component patterns.",
+      "expected_output": "Must anchor the proposal in Seguros Falabella foundations: mobile and desktop grid structure, x2 spacing rhythm, neutral text hierarchy, and reuse of existing component families such as Form, Checkout, Summary, Header, and Feedback. Must avoid inventing a new visual language and should position the summary as secondary support content rather than the dominant area.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Review this UI proposal: a page uses product accent colors for most body text, irregular spacing values, and a new custom modal even though a similar summary and modal exist in the design system. Tell me what is wrong.",
+      "expected_output": "Must identify misuse of product colors for body text, spacing that breaks the documented rhythm, and failure to reuse existing component patterns. Must recommend neutral text hierarchy, existing modal/summary patterns, and minimal corrective changes grounded in foundations and component reuse.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Implement a responsive product comparison card area for Seguros Falabella. Before giving code, explain which existing component categories and foundation rules should guide the layout and hierarchy.",
+      "expected_output": "Must explain the decision path first: choose the closest existing component families such as Cards, List, Item, or Table; apply the grid containers for mobile and desktop; keep typography hierarchy and neutral text usage; and reserve product colors for emphasis rather than dominant content styling. If exact Tomaco props or utility classes are required, it should escalate to tomaco-design-system.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Design the first contracting step for Seguros Falabella. It has lead consent, mandatory terms acceptance later in the flow, a few text fields, and a summary that should not distract on mobile. Explain the UI/UX structure before any code.",
+      "expected_output": "Must use form and contracting-flow guidance: separate required acceptance from optional consent, keep field validation near the field, preserve primary-task dominance over the summary, and explain mobile vs desktop summary behavior. Must treat the answer as a pattern and layout decision first, not jump straight into component props or CSS classes. If exact implementation details are requested, it must hand off to tomaco-design-system.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "I need the exact Tomaco components, props, and utility classes for a Seguros Falabella checkout summary with alerts and fixed actions. Use the UI/UX skill.",
+      "expected_output": "Must recognize that exact component names, props, utility classes, and tokens belong to tomaco-design-system. It may outline the UX pattern briefly, but it must explicitly hand off implementation fidelity to tomaco-design-system instead of inventing API details inside this skill.",
+      "files": []
+    }
+  ]
+}

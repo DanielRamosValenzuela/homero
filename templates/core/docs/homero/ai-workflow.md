@@ -12,7 +12,9 @@ discover -> specify -> plan -> tasks -> implement -> verify -> converge
 ### discover
 
 Read the repo contract, ask missing stack and business questions, and record the
-answers in `docs/homero/` and `homero.config.json`.
+answers in `docs/homero/` and `homero.config.json`. When exploring unfamiliar or
+large parts of the codebase, use `graphify` instead of a broad file-by-file read
+— see `docs/homero/knowledge-graph.md`.
 
 ### specify
 
@@ -32,7 +34,10 @@ implementable and verifiable without rediscovering the whole repo.
 ### implement
 
 Implement the task list. Ask questions only for blocking ambiguity. If the spec
-and plan are complete, proceed and run focused checks after edits.
+and plan are complete, proceed and run focused checks after edits. Before
+touching unfamiliar or large parts of the codebase, query the knowledge graph
+(`docs/homero/knowledge-graph.md`) instead of reading many files manually —
+this is a constitution requirement, not a suggestion.
 
 ### verify
 

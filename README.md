@@ -51,12 +51,55 @@ pnpm exec homero validate --target . --client both
 
 `--client` es `copilot`, `claude`, o `both`.
 
+Si usás `copilot`, `homero-figma` necesita el servidor MCP de Figma registrado
+para el coding agent de Copilot a nivel de repo u organización (repo
+**Settings → Copilot → Coding agent → MCP servers**) — es una superficie de
+configuración distinta a `mcp.example.json`, que solo conecta Figma MCP para
+uso local/Claude. Sin ese registro, `homero-figma` no puede leer el diseño ni
+bajar assets por su cuenta en Copilot.
+
 ```powershell
 pnpm exec homero setup playwright --target .
 ```
 
 Instala `@playwright/test`, `@playwright/cli`, `@axe-core/playwright` y
 Chromium (usa `--dry-run` para ver qué haría antes de instalar).
+
+```powershell
+pnpm exec homero setup graphify --target .
+```
+
+Instala [graphify](https://github.com/Graphify-Labs/graphify) (vía `uv`,
+`pipx`, o `pip` — requiere Python 3.10+) y agrega `graphify-out/` al
+`.gitignore`. Es parte del setup estándar, igual que Playwright: la
+constitución del proyecto (`docs/homero/constitution.md`) exige que los
+agentes usen `graphify query` en vez de leer archivo por archivo al explorar
+código no familiar — ver `docs/homero/knowledge-graph.md`. No es un gate de
+`homero validate`/`feature check`, porque no es evidencia de una feature, es
+una herramienta de productividad/costo de tokens.
+
+### Proyectos con otra estructura de carpetas (o monorepos)
+
+Homero no asume `src/ui`, `src/app`, etc. de forma rígida: `homero discover`
+pregunta por `uiRoot`, `stepRoot`, `serverActionsRoot`, `storesRoot`,
+`widgetsRoot` y `testRoot`, y los deja registrados en `homero.config.json` bajo
+`paths`. Todos los docs y agentes generados leen esas rutas en vez de asumir
+las del template.
+
+Si el repo es un **monorepo**, instala Homero por app, apuntando `--target` a
+la carpeta de esa app (no a la raíz del workspace):
+
+```powershell
+pnpm exec homero init --target apps/web --client both --project-name mi-app-web
+pnpm exec homero discover --target apps/web
+```
+
+Esto crea un `homero.config.json`, `docs/homero/`, `features/` y `specs/`
+independientes por app. `homero feature create` sigue funcionando igual: el
+worktree que crea contiene el repo completo (git no lo limita a la carpeta),
+así que una feature puede seguir tocando otro paquete del monorepo si hace
+falta — solo que el contrato, el estado del loop y la verificación quedan
+scoped a la app donde corriste `init`.
 
 ## Uso
 
@@ -240,6 +283,7 @@ Usa `pnpm exec homero <comando> --help` para ver los argumentos disponibles.
 | `homero discover` | Registra el contexto del proyecto. |
 | `homero validate` | Valida la instalación de Homero. |
 | `homero setup playwright` | Instala Playwright localmente. |
+| `homero setup graphify` | Instala graphify (grafo de conocimiento para explorar código). |
 
 **Ciclo de vida del feature**
 

@@ -18,6 +18,7 @@ features.
 10. Verification commands in `homero.config.json` are part of the definition of done.
 11. Only humans may commit, push, open pull requests, merge, or modify Figma.
 12. Features must record which countries they target in `feature.json`. Keep country-specific business rules, copy, and validation messages isolated from shared logic so adding a country does not require rewriting shared code.
+13. The AI agent must use `graphify query` (see `docs/homero/knowledge-graph.md`) instead of broad manual file-by-file reads when exploring unfamiliar or large parts of the codebase. Reading files one by one for exploration that a graph query could answer wastes tokens and is a constitution violation, not a style preference.
 
 ## Rejection criteria
 
@@ -30,3 +31,4 @@ A feature plan or implementation should be rejected if it:
 - skips required validation for forms or server boundaries
 - lacks executable verification or a passing Homero receipt
 - hardcodes country-specific business rules, copy, or validation messages inside shared logic instead of isolating them per country
+- explores unfamiliar code file-by-file when `graphify query` was available and unused

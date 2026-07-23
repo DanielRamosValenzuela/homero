@@ -16,11 +16,12 @@ argument-hint: "[Figma URL or node id] [ComponentName]"
 ## Procedure
 
 1. Fetch the specific frame or node, not the whole file
-2. Identify the Tomaco atoms and project layout primitives first
-3. Translate design intent into project code style
-4. Do not copy raw Tailwind classes into a non-Tailwind repo
-5. Clarify missing behavior instead of guessing it from visuals alone
-6. Verify the final result against the design and the product context
+2. Invoke `seguros-falabella-ui-ux` first for pattern reuse, layout/hierarchy, spacing, grid, and responsive structure
+3. Invoke `tomaco-design-system` for the exact component/prop/utility-class/token that implements that structure
+4. Translate design intent into project code style
+5. Do not copy raw Tailwind classes into a non-Tailwind repo
+6. Clarify missing behavior instead of guessing it from visuals alone
+7. Verify the final result against the design and the product context
 
 ## Output expectations
 

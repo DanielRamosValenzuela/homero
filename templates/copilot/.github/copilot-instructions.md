@@ -8,6 +8,7 @@ Before making non-trivial frontend changes, read:
 4. `docs/homero/conventions.md`
 5. `docs/homero/verification.md`
 6. `docs/homero/playwright-cli.md`
+7. `docs/homero/knowledge-graph.md`
 
 Use Homero as the harness contract:
 
@@ -19,5 +20,6 @@ Use Homero as the harness contract:
 - Ask for missing business context when behavior is ambiguous.
 - Prefer `scripts/homero/new-form.mjs` for repeated form scaffolds.
 - Use Playwright CLI in the feature session to run user flows and save a screenshot plus snapshot for every scenario under `features/<id>/evidence/`.
+- Use `graphify query` instead of broad manual file-by-file reads when exploring unfamiliar or large parts of the codebase.
 - Run `homero feature check` before implementation and `homero verify` before claiming completion.
 - Do not commit, push, create a pull request, merge, or modify Figma.

@@ -10,7 +10,8 @@ Read this repo in the following order before making non-trivial frontend changes
 6. `docs/homero/agent-roles.md`
 7. `docs/homero/conventions.md`
 8. `docs/homero/verification.md`
-10. `docs/homero/playwright-cli.md`
+9. `docs/homero/playwright-cli.md`
+10. `docs/homero/knowledge-graph.md`
 
 ## Working model
 
@@ -32,6 +33,7 @@ Read this repo in the following order before making non-trivial frontend changes
 7. Use Playwright CLI to inspect real user flows and save snapshot plus screenshot evidence under `features/<id>/evidence/`.
 8. Do not bypass `docs/homero/verification.md` when closing a task.
 9. Do not commit, push, create pull requests, merge, or modify Figma. Those actions belong to a human.
+10. Use `graphify query` instead of broad manual file-by-file reads when exploring unfamiliar or large parts of the codebase — see `docs/homero/knowledge-graph.md`.
 
 ## Fast paths
 
@@ -43,3 +45,5 @@ Read this repo in the following order before making non-trivial frontend changes
   `homero feature check --target . --id FEAT-001`
 - Feature verification receipt:
   `homero verify --target . --id FEAT-001`
+- Knowledge graph refresh + query:
+  `graphify src --update` then `graphify query "<question>"`
