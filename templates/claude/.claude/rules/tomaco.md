@@ -14,3 +14,10 @@ Apply this rule whenever editing React UI components.
 - Raw Tailwind copied from MCP output without adaptation
 - New component abstractions with no product-level reason
 - Hardcoded styling when the design system already covers the need
+
+## Gotcha
+
+- Any file that imports from `tomaco-components` needs `'use client'` at the
+  top, even if the file itself uses no hooks — the package's bundle may call
+  `createContext` without declaring a client boundary, which breaks Server
+  Component builds otherwise

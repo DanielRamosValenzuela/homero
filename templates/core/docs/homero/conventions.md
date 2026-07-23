@@ -26,9 +26,19 @@
 - Keep validation messages user-facing and explicit
 - Do not defer basic keyboard or focus behavior to later
 
+## Testing
+
+- Mirror source paths under `test/`, e.g. `src/ui/cl/LeadCaptureForm` ->
+  `test/ui/cl/LeadCaptureForm`
+- Do not colocate test files next to source files unless the repo already
+  does so before Homero was installed
+
 ## Naming
 
 - Component directories: PascalCase
 - Hooks: `useX`
 - Schemas: `schema`
 - Inferred value types: `<FormName>Values`
+- Once a naming decision is resolved for a shared concept (e.g. a
+  country/form resolver), keep using it — do not reintroduce an older or
+  more ambiguous name for the same concept

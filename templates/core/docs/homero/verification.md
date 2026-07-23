@@ -42,6 +42,8 @@ It creates a local `feature/<id>-<slug>` branch without committing, plus:
 4. UI matches the approved design intent
 5. Tomaco usage respects the project conventions
 6. Backend-dependent flows use recorded contracts or clearly marked draft mocks
+7. Test files mirror the source path convention recorded in `docs/homero/conventions.md`
+8. Files importing the design system declare the required client boundary directive
 
 ## Figma-specific checks
 

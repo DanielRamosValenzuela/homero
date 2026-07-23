@@ -35,9 +35,16 @@ if (!name || !country || hasFlag("--help")) {
 const configPath = path.resolve(process.cwd(), "homero.config.json");
 const config = JSON.parse(fs.readFileSync(configPath, "utf8"));
 const uiRoot = config.paths?.uiRoot || "src/ui";
+const testRoot = config.paths?.testRoot || "test";
 const formDir = path.resolve(process.cwd(), uiRoot, country, name);
 
+// Mirror the form path under testRoot, e.g. src/ui/cl/Name -> test/ui/cl/Name
+const uiRootRelative = uiRoot.replace(/^src[\\/]/, "");
+const testDir = path.resolve(process.cwd(), testRoot, uiRootRelative, country, name);
+const testImportSpecifier = path.relative(testDir, formDir).split(path.sep).join("/");
+
 fs.mkdirSync(formDir, { recursive: true });
+fs.mkdirSync(testDir, { recursive: true });
 
 const typeName = `${name}Values`;
 const hookName = `use${name}`;
@@ -101,9 +108,9 @@ export default function ${name}() {
 `
   },
   {
-    path: path.join(formDir, `${name}.test.tsx`),
+    path: path.join(testDir, `${name}.test.tsx`),
     content: `import { render, screen } from "@testing-library/react";
-import ${name} from "./index";
+import ${name} from "${testImportSpecifier}";
 
 describe("${name}", () => {
   it("renders the form shell", () => {

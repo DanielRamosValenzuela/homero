@@ -8,7 +8,8 @@ Apply this rule whenever editing a form or creating a new form under `src/ui/`.
 2. `schema.ts`
 3. `use<FormName>.ts`
 4. `index.tsx`
-5. Prefer a colocated test file
+5. Mirror the test file under `test/`, e.g. `src/ui/cl/LeadCaptureForm` ->
+   `test/ui/cl/LeadCaptureForm` (do not colocate)
 
 ## Required conventions
 
@@ -17,6 +18,9 @@ Apply this rule whenever editing a form or creating a new form under `src/ui/`.
 - Keep business-specific validation messages explicit
 - Keep layout and Tomaco wiring in the component layer
 - Keep durable form logic in the hook
+- If the form does not vary in structure between countries (only in data),
+  keep a single implementation under `src/ui/global/{FormName}` instead of
+  forking it into `cl`/`co`/`pe`
 
 ## Fast path
 

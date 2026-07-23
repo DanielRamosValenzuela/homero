@@ -16,7 +16,13 @@
     "uiRoot": "src/ui",
     "stepRoot": "src/app",
     "serverActionsRoot": "src/actions",
-    "storesRoot": "src/store"
+    "storesRoot": "src/store",
+    "widgetsRoot": "src/widgets",
+    "testRoot": "test"
+  },
+  "transport": {
+    "pattern": "server-actions",
+    "options": ["server-actions", "proxy-middleware"]
   },
   "figma": {
     "mcpExampleFile": "mcp.example.json",
