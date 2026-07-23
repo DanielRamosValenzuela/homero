@@ -4,6 +4,36 @@ Harness interno de frontend para Falabella Seguros: CLI + adapters para
 trabajar con GitHub Copilot o Claude Code usando Tomaco, Figma, contratos,
 mocks y verificación con Playwright.
 
+## De un vistazo
+
+Homero no es solo un instalador de archivos. Convierte cada feature en un
+**contrato ejecutable** (`feature.json`) y un **loop de tareas con estado en
+disco** (`state.json` + `events.ndjson`), para que la IA pueda retomar el
+trabajo exactamente donde quedó — aunque cambie de sesión o de cliente
+(Copilot/Claude) — y para que nadie, ni la IA, se autoapruebe.
+
+```mermaid
+flowchart TD
+    A["pnpm add -D homero"] --> B["homero init"]
+    B --> C["homero discover"]
+    C --> D["homero validate"]
+    D --> E["homero feature create<br/>crea worktree + rama + feature.json"]
+    E --> F["Completar feature.json<br/>Figma, contrato, mocks, criterios"]
+    F --> G{"homero feature check"}
+    G -- "falta algo" --> F
+    G -- "listo" --> H["Loop de tareas<br/>task add / homero run / task verify / task block"]
+    H -- "quedan tareas" --> H
+    H -- "todas done" --> I{"homero verify<br/>lint · typecheck · test · e2e"}
+    I -- "falla" --> H
+    I -- "pasa" --> J["Receipt + feature en needs-review"]
+    J --> K{"Revisión humana"}
+    K -- "rechaza" --> H
+    K -- "aprueba" --> L["Merge manual de la rama<br/>Homero nunca commitea/pushea/mergea"]
+```
+
+Cada caja de ese diagrama se explica en detalle en [Uso](#uso). Si solo
+quieres los comandos, ve directo a la [tabla de comandos](#comandos).
+
 ## Requisitos
 
 - Git, Node.js, `pnpm`
@@ -33,6 +63,29 @@ Chromium (usa `--dry-run` para ver qué haría antes de instalar).
 Homero organiza el trabajo en **features**: una unidad con su propia rama,
 contrato (`feature.json`), spec y lista de tareas. El ciclo completo es
 `crear → completar contrato → trabajar (loop) → verificar → aceptar/merge`.
+
+Por dentro, un feature avanza por estas fases (`state.phase` en
+`features/<id>/state.json`, visible con `homero task status`):
+
+```mermaid
+stateDiagram-v2
+    [*] --> draft
+    draft --> ready: feature check OK
+    ready --> implementing: run asigna una tarea
+    implementing --> implementing: quedan tareas pendientes
+    implementing --> blocked: solo quedan tareas bloqueadas
+    blocked --> implementing: se resuelven o dividen tareas
+    implementing --> exhausted: se alcanza runtime.maxIterations
+    implementing --> verifying: todas las tareas quedaron done
+    verifying --> implementing: homero verify falla
+    verifying --> needs_review: homero verify pasa (genera receipt)
+    needs_review --> accepted: humano revisa y mergea
+
+    state "needs-review" as needs_review
+```
+
+`blocked` y `exhausted` no son callejones sin salida: son la señal de que hay
+que mirar el feature a mano en vez de seguir reintentando a ciegas.
 
 ### 1. Crear el feature
 
@@ -177,23 +230,40 @@ git worktree remove ..\.homero-worktrees\mi-repo\FEAT-042
 
 ## Comandos
 
+Usa `pnpm exec homero <comando> --help` para ver los argumentos disponibles.
+
+**Setup del repo** — una vez por proyecto
+
 | Comando | Uso |
 | --- | --- |
 | `homero init` | Instala Homero y los adapters de IA. |
 | `homero discover` | Registra el contexto del proyecto. |
 | `homero validate` | Valida la instalación de Homero. |
 | `homero setup playwright` | Instala Playwright localmente. |
+
+**Ciclo de vida del feature**
+
+| Comando | Uso |
+| --- | --- |
 | `homero feature create` | Crea el worktree, la rama y los artefactos del feature. |
 | `homero feature check` | Valida que el feature esté listo para trabajar. |
+| `homero verify` | Ejecuta lint/typecheck/test/e2e y genera el receipt. |
+
+**Loop de tareas** — dentro del worktree del feature
+
+| Comando | Uso |
+| --- | --- |
 | `homero task add` | Agrega una tarea de seguimiento al feature. |
-| `homero run` | Devuelve la próxima tarea o acción del loop. |
+| `homero run` | Devuelve la próxima tarea o acción del loop (nunca llama a un modelo). |
 | `homero task verify` | Marca una tarea como completada. |
 | `homero task block` | Registra un intento fallido de una tarea. |
 | `homero task status` | Muestra fase, iteraciones, tareas y últimos eventos. |
-| `homero verify` | Ejecuta verificaciones y genera el receipt. |
-| `homero generate form` | Genera un formulario repetitivo por país. |
 
-Usa `pnpm exec homero <comando> --help` para ver los argumentos disponibles.
+**Generadores**
+
+| Comando | Uso |
+| --- | --- |
+| `homero generate form` | Genera un formulario repetitivo por país. |
 
 ## Desarrollo local
 
