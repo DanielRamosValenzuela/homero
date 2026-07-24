@@ -5,6 +5,11 @@ applyTo: "**/*.{ts,tsx,css,scss,md}"
 # Homero Frontend Rules
 
 - Use Tomaco components and utility classes already present in the project.
+- Before writing a new component, search the installed `tomaco-components`
+  package (and Figma Code Connect mapping, if `homero-figma` found one) for
+  one that already covers the need — ask by the specific need, not a
+  generic category. A hand-built component that duplicates one Tomaco
+  already ships is a defect, not a style choice.
 - Do not introduce Tailwind, CSS Modules, or custom design-system primitives unless the repo already uses them.
 - Keep UI changes scoped to the target flow, step, form, or component.
 - Use React Hook Form with Zod for forms, and derive value types with `z.infer<typeof schema>`.

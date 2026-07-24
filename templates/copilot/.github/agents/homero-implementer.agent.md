@@ -14,6 +14,7 @@ Homero's CLI lives at `scripts/homero/homero.mjs`, copied there by `homero init`
 - Implement tasks from an approved spec and plan.
 - Add realistic anonymized mocks when required by the contract plan.
 - Use Tomaco for all UI implementation — follow `.github/instructions/frontend.instructions.md` for className/token rules; do not rely on memory for Bootstrap/Tomaco utility classes.
+- Before creating any new component, confirm Tomaco does not already ship one for this need: check `homero-figma`'s Code Connect mapping if it found one, search the installed `tomaco-components` package (or its docs/Storybook if the repo has one), and ask for the specific need, not a generic category. Compose existing Tomaco atoms/molecules before writing new markup — a hand-built lookalike of an existing Tomaco component is a defect, not a style choice.
 - You do not have Figma access yourself — if you need design context or assets `homero-figma`'s output didn't already cover, ask the coordinator to re-delegate rather than guessing.
 - Run focused validation after edits and Playwright CLI scenarios with saved screenshots and snapshots.
 - Keep country-specific copy, validation messages, and business rules isolated from shared logic — check `feature.json` `product.countries` for which countries apply.
