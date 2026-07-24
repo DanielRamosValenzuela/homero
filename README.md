@@ -217,18 +217,31 @@ llega a la etapa de implementación.
 
 ### 3. Trabajar el feature — el loop de tareas
 
-Abre Copilot o Claude Code **dentro del worktree** y pide el trabajo:
+Con `--client claude` o `--client both`, un solo comando alcanza — no hace
+falta crear el feature a mano primero:
+
+```text
+/homero implementa esta pantalla de Figma: https://www.figma.com/design/...
+```
+
+`/homero` corre `homero-coordinator`: lee el Figma, deriva el feature si
+hace falta, delega en los agentes especializados, avanza el loop de tareas
+solo, y no se autoaprueba — solo pregunta si hay una ambigüedad real de
+negocio, Figma o contrato que no puede resolver.
+
+`homero-coordinator` es el único de los 7 agentes pensado para elegir a
+mano; los otros seis están marcados `user-invocable: false` justamente para
+no aparecer en el selector de Copilot. Si igual aparecen todos, reiniciá VS
+Code o revisá **Configure Custom Agents… → ícono de ojo** por agente.
+
+Para retomar un feature ya creado en otra sesión:
 
 ```text
 Trabaja el feature FEAT-042 usando features/FEAT-042/feature.json.
-Usa Tomaco, respeta el Figma aprobado y deja evidencia de Playwright CLI.
 ```
 
-Si instalaste con `--client claude` o `--client both`, el agente
-`homero-coordinator` ya sabe seguir el loop por su cuenta: recupera el
-progreso, delega en `homero-implementer`, y no se autoaprueba. Si prefieres
-manejarlo tú mismo, o tu cliente de IA no soporta agentes personalizados, esta
-es la mecánica completa:
+Si tu cliente de IA no soporta comandos o agentes personalizados, o
+preferís manejarlo vos mismo, esta es la mecánica completa:
 
 ```powershell
 # Declara las tareas del feature (una vez, al empezar)
