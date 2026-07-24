@@ -1,13 +1,10 @@
 # __PROJECT_NAME__ - Homero harness
 
-Homero is not a devDependency: `homero init` copied its CLI directly into
-this repo at `scripts/homero/homero.mjs`. Every `homero <command>` mentioned
-in this repo's docs and agents means
-`node scripts/homero/homero.mjs <command> --target . ...` — except
-`init`/`validate`, which need the Homero source template and run via
-`npx github:DanielRamosValenzuela/homero <command> ...`. There is no
-`homero` binary on PATH; nothing about Homero lives in `package.json` or the
-lockfile.
+Homero's CLI lives at `scripts/homero/homero.mjs`, copied there by
+`homero init`. Every `homero <command>` mentioned in this repo's docs and
+agents means `node scripts/homero/homero.mjs <command> --target . ...` —
+except `init`/`validate`, which need the Homero source template and run via
+`npx github:DanielRamosValenzuela/homero <command> ...`.
 
 Read this repo in the following order before making non-trivial frontend changes:
 

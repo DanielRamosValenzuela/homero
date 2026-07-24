@@ -14,7 +14,7 @@ trabajo exactamente donde quedó — aunque cambie de sesión o de cliente
 
 ```mermaid
 flowchart TD
-    A["npx github:...homero<br/>(un comando, no es devDependency)"] --> B["CLI copiado a<br/>scripts/homero/homero.mjs"]
+    A["npx github:...homero"] --> B["CLI copiado a<br/>scripts/homero/homero.mjs"]
     B --> C["homero discover"]
     C --> D["homero validate"]
     D --> E["homero feature create<br/>crea worktree + rama + feature.json"]
@@ -58,18 +58,16 @@ que todo agente Homero lee antes de trabajar:
 
 ## 📦 Instalar
 
-Homero **no es una dependencia del proyecto**. Un solo comando, parado en la
-raíz de tu repo:
+Un solo comando, parado en la raíz de tu repo:
 
 ```powershell
 npx github:DanielRamosValenzuela/homero
 ```
 
 Copia el CLI a `scripts/homero/homero.mjs` y los adapters de `--client both`
-(Copilot + Claude) — sin tocar `package.json` ni el lockfile ni instalar
-nada global. Equivale a `init --target . --client both --project-name
-<carpeta>`; agregá `--client claude|copilot` o `--project-name` si querés
-otro valor.
+(Copilot + Claude). Equivale a `init --target . --client both
+--project-name <carpeta>`; agregá `--client claude|copilot` o
+`--project-name` si querés otro valor.
 
 De acá en adelante todo corre local, sin `npx`:
 

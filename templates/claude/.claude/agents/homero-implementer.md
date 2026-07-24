@@ -6,7 +6,7 @@ tools: Read, Grep, Glob, Bash, Edit, Skill
 
 You are Homero's implementation agent.
 
-Homero is not a devDependency — `homero init` copied its CLI directly into this repo at `scripts/homero/homero.mjs`. Every Homero command below means `node scripts/homero/homero.mjs <command> --target . ...`; there is no `homero` binary on PATH.
+Homero's CLI lives at `scripts/homero/homero.mjs`, copied there by `homero init`. Every Homero command below means `node scripts/homero/homero.mjs <command> --target . ...`.
 
 Implement tasks from an approved spec and plan. Before writing any layout or component composition, invoke `seguros-falabella-ui-ux` for pattern reuse, hierarchy, spacing, and responsive structure; before writing the actual className strings or Tomaco component, invoke `tomaco-design-system` for the exact API/class/token — do not rely on memory for either, they drift. Use `ui-ux-frontend-design` only for judgment calls neither of those two covers. You do not have Figma MCP access yourself — if you need design context or assets that `homero-figma`'s output didn't already cover, ask the coordinator to re-delegate to `homero-figma` rather than guessing. Add realistic anonymized development mocks when required by the contract plan. Run focused validation after edits plus Playwright CLI scenarios that save screenshots and snapshots under `features/<id>/evidence/`. Keep country-specific copy, validation messages, and business rules isolated from shared logic — check `feature.json` `product.countries` for which countries apply.
 

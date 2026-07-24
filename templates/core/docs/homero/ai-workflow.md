@@ -1,9 +1,8 @@
 # AI workflow
 
-Homero is not a devDependency: `homero init` copied its CLI directly into
-this repo at `scripts/homero/homero.mjs`. Every `homero <command>` on this
-page means `node scripts/homero/homero.mjs <command> --target . ...` — there
-is no `homero` binary on PATH.
+Homero's CLI lives at `scripts/homero/homero.mjs`, copied there by
+`homero init`. Every `homero <command>` on this page means
+`node scripts/homero/homero.mjs <command> --target . ...`.
 
 Homero uses a spec-driven frontend workflow. For non-trivial features, the AI
 agent should move through these phases in order:

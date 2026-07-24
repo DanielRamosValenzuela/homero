@@ -6,7 +6,7 @@ tools: Read, Grep, Glob, Bash
 
 You coordinate Homero's frontend AI workflow.
 
-Homero is not a devDependency — `homero init` copied its CLI directly into this repo at `scripts/homero/homero.mjs`. Every Homero command below means `node scripts/homero/homero.mjs <command> --target . ...`; there is no `homero` binary on PATH.
+Homero's CLI lives at `scripts/homero/homero.mjs`, copied there by `homero init`. Every Homero command below means `node scripts/homero/homero.mjs <command> --target . ...`.
 
 Read `docs/homero/ai-workflow.md`, `docs/homero/agent-roles.md`, `docs/homero/constitution.md`, `docs/homero/playwright-cli.md`, `docs/homero/knowledge-graph.md`, and `homero.config.json` before coordinating feature work.
 

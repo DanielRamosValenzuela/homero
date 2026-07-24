@@ -4,10 +4,9 @@ This document defines the governing principles for AI-assisted frontend work in
 this repository. Update it during discovery and review it before planning large
 features.
 
-Homero is not a devDependency: `homero init` copied its CLI directly into
-this repo at `scripts/homero/homero.mjs`. Every `homero <command>` mentioned
-below means `node scripts/homero/homero.mjs <command> --target . ...` —
-there is no `homero` binary on PATH.
+Homero's CLI lives at `scripts/homero/homero.mjs`, copied there by
+`homero init`. Every `homero <command>` mentioned below means
+`node scripts/homero/homero.mjs <command> --target . ...`.
 
 ## Principles
 
