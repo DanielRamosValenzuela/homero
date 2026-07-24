@@ -148,15 +148,22 @@ stateDiagram-v2
     blocked --> implementing: se resuelven o dividen tareas
     implementing --> exhausted: se alcanza runtime.maxIterations
     implementing --> verifying: todas las tareas quedaron done
-    verifying --> implementing: homero verify falla
+    verifying --> verifying: homero verify falla (intento < límite)
+    verifying --> verify_exhausted: homero verify falla runtime.maxVerifyAttempts veces (3 por defecto)
+    verify_exhausted --> implementing: humano da instrucciones específicas
     verifying --> needs_review: homero verify pasa (genera receipt)
     needs_review --> accepted: humano revisa y mergea
 
     state "needs-review" as needs_review
+    state "verify-exhausted" as verify_exhausted
 ```
 
-`blocked` y `exhausted` no son callejones sin salida: son la señal de que hay
-que mirar el feature a mano en vez de seguir reintentando a ciegas.
+`blocked`, `exhausted` y `verify-exhausted` no son callejones sin salida: son
+la señal de que hay que mirar el feature a mano en vez de seguir
+reintentando a ciegas. `verify-exhausted` corta el loop apenas `homero
+verify` falla 3 veces seguidas (`runtime.maxVerifyAttempts`) — a partir de
+ahí, `homero verify` se niega a correr de nuevo hasta que un humano revise
+el receipt y arregle algo puntual o cambie el límite.
 
 ### 1. Crear el feature
 

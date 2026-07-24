@@ -45,6 +45,12 @@ Anything not confirmed here goes under Open questions below — it does not
 get a generic or invented default. The default `requirements.uiStates` list
 in `feature.json` is a starting checklist, not proof this section was done.
 
+List every referenced secondary surface (modal, drawer, tooltip content,
+sub-screen) that this screen opens. For each one, either record its own
+approved Figma URL/node, or record under Open questions that it has no
+design source yet — with the human's decision: provide one, or leave it out
+of this feature. Do not design or implement a surface that has neither.
+
 ## Backend contract and mock requirements
 
 - Contract mode: contract-first | contract-draft | no-contract-exception

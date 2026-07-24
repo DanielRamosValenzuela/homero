@@ -80,3 +80,8 @@ These files are the source of truth for resuming after an interruption
   `runtime.maxAttemptsPerTask`).
 - These commands never call an LLM; they are deterministic state updates the
   agent calls between its own reasoning steps.
+- `node scripts/homero/homero.mjs verify --target . --id <id>` is bounded the
+  same way (`runtime.maxVerifyAttempts`, 3 by default): after that many
+  failures in a row it stops running and `state.phase` becomes
+  `verify-exhausted` — a human must review the receipt and either fix the
+  specific failure or say what to do next before it runs again.

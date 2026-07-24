@@ -357,4 +357,25 @@ if (!fs.existsSync(path.join(featureDir, "state.json"))) {
   process.exit(1);
 }
 
+// --- Negative test: maxVerifyAttempts ---
+featureConfig.commands.lint = 'node -e "process.exit(1)"';
+fs.writeFileSync(featureConfigPath, `${JSON.stringify(featureConfig, null, 2)}\n`, "utf8");
+
+for (let attempt = 1; attempt <= 3; attempt += 1) {
+  runExpectFailure(["verify", "--target", targetRoot, "--id", "FEAT-001"]);
+}
+
+state = readState();
+if (state.phase !== "verify-exhausted" || state.verifyAttempts !== 3) {
+  console.error(`Expected phase 'verify-exhausted' with verifyAttempts=3 after 3 failures, got phase=${state.phase} verifyAttempts=${state.verifyAttempts}`);
+  process.exit(1);
+}
+
+runExpectFailure(["verify", "--target", targetRoot, "--id", "FEAT-001"]);
+state = readState();
+if (state.verifyAttempts !== 3) {
+  console.error(`Expected a 4th verify call to stay blocked without incrementing further, got verifyAttempts=${state.verifyAttempts}`);
+  process.exit(1);
+}
+
 console.log(`Homero self-test OK: ${targetRoot}`);

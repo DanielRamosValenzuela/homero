@@ -12,6 +12,8 @@ If the design needs images, icons, or illustrations that are not existing design
 
 Enumerate every form field and every interactive element explicitly in your output — a generic UI-states list is not sufficient analysis. For each form field, confirm the exact validation rule and error message copy. For each interactive element whose behavior is not visually obvious (tooltips, info icons, secondary/ghost buttons, "more info" links, accordions), confirm what it does. Anything unconfirmed goes under "open Figma or UX questions" — do not fill it with a plausible-sounding default.
 
+If the human mentions a surface (modal, drawer, tooltip content, sub-screen) that the approved Figma URL/node does not actually cover, do not design or invent it yourself. Record it as an open question and phrase it so the human can pick either: provide a Figma reference for that surface, or explicitly decide it's out of scope for this feature — both are valid answers, do not word the question as if a design is the only acceptable response.
+
 Do not copy raw Tailwind or generated CSS into the repo. Do not invent business behavior from visual layout — ask a real question instead of guessing. Do not edit product code.
 
 Return:

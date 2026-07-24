@@ -539,6 +539,7 @@ Homero's CLI lives at \`scripts/homero/homero.mjs\`, copied there by
 14. UI states and field-level behavior recorded in a spec must be specific to the screen being built. The default \`requirements.uiStates\` list in \`feature.json\` is a starting checklist, not proof of analysis. Every form input needs its exact validation error copy, and every interactive element whose behavior is not visually obvious (tooltips, secondary buttons, "more info" links or icons, accordions) must have its behavior confirmed or recorded as an open question.
 15. Before adding a new shared widget or component, search the repo (and \`graphify query\` for relationship questions) for one that already covers the need. Reuse or extend it — a new file duplicating existing shared UI is a rejection, not a style note.
 16. Before building a new component, confirm Tomaco does not already ship one for the need — check the Figma Code Connect mapping (if configured) and the installed \`tomaco-components\` package, not just memory. A hand-built lookalike of an existing Tomaco component is a rejection, not a style note.
+17. A referenced secondary surface (modal, drawer, tooltip content, sub-screen) without its own approved Figma coverage must not be invented. Ask whether to source a design for it or leave it out of the feature — both are valid answers; do not word the question as if a design is the only acceptable one.
 
 ## Rejection criteria
 
@@ -556,6 +557,7 @@ A feature plan or implementation should be rejected if it:
 - leaves UI states or validation error copy as the generic default instead of screen-specific content, or leaves an interactive element's behavior unconfirmed
 - introduces a new shared widget or component that duplicates one already available under \`paths.widgetsRoot\`
 - builds a component that duplicates one \`tomaco-components\` already ships instead of reusing or composing it
+- implements a referenced surface (modal, drawer, tooltip content, sub-screen) that has no approved Figma source instead of asking whether to source one or skip it
 `;
 }
 
@@ -723,9 +725,11 @@ function loopStateTemplate(feature, config) {
     activeTaskId: null,
     limits: {
       maxIterations: config.runtime?.maxIterations ?? 10,
-      maxAttemptsPerTask: config.runtime?.maxAttemptsPerTask ?? 3
+      maxAttemptsPerTask: config.runtime?.maxAttemptsPerTask ?? 3,
+      maxVerifyAttempts: config.runtime?.maxVerifyAttempts ?? 3
     },
     iterations: 0,
+    verifyAttempts: 0,
     tasks: [],
     updatedAt: new Date().toISOString()
   };
@@ -1262,6 +1266,13 @@ function verifyFeature() {
     process.exit(1);
   }
 
+  const state = ensureLoopState(featureDir, feature, workspaceConfig);
+  const verifyLimit = state.limits?.maxVerifyAttempts ?? workspaceConfig.runtime?.maxVerifyAttempts ?? 3;
+
+  if ((state.verifyAttempts ?? 0) >= verifyLimit) {
+    fail(`error_max_verify_attempts: ${feature.id} already failed verification ${state.verifyAttempts} times (limit ${verifyLimit}). Phase 'verify-exhausted' — a human must review the last receipt and either fix it directly or give specific instructions. To retry automatically, reset state.verifyAttempts in state.json or raise runtime.maxVerifyAttempts.`);
+  }
+
   const commandNames = feature.verification.required.filter(name => name !== "playwright-cli");
   const commandResults = [];
 
@@ -1304,12 +1315,25 @@ function verifyFeature() {
   feature.receipt = path.relative(featureDir, receiptPath);
   writeJsonFile(featurePath, feature);
 
-  if (!passed) {
-    console.error(`Feature ${id} verification failed. Receipt: ${path.relative(targetRoot, receiptPath)}`);
-    process.exit(1);
+  if (passed) {
+    state.verifyAttempts = 0;
+    writeLoopState(featureDir, state);
+    console.log(`Feature ${id} verification passed. Receipt: ${path.relative(targetRoot, receiptPath)}`);
+    return;
   }
 
-  console.log(`Feature ${id} verification passed. Receipt: ${path.relative(targetRoot, receiptPath)}`);
+  state.verifyAttempts = (state.verifyAttempts ?? 0) + 1;
+
+  if (state.verifyAttempts >= verifyLimit) {
+    state.phase = "verify-exhausted";
+    writeLoopState(featureDir, state);
+    appendLoopEvent(featureDir, { type: "verify-exhausted", attempts: state.verifyAttempts, limit: verifyLimit });
+    fail(`error_max_verify_attempts: ${feature.id} failed verification ${state.verifyAttempts} times (limit ${verifyLimit}). Phase 'verify-exhausted' — a human must review the receipt and either fix it directly or give specific instructions to continue. Receipt: ${path.relative(targetRoot, receiptPath)}`);
+  }
+
+  writeLoopState(featureDir, state);
+  console.error(`Feature ${id} verification failed (attempt ${state.verifyAttempts}/${verifyLimit}). Receipt: ${path.relative(targetRoot, receiptPath)}`);
+  process.exit(1);
 }
 
 function feature() {
@@ -1385,17 +1409,24 @@ function runLoop() {
       state.phase = "blocked";
       brief = "Only blocked tasks remain. Resolve or split them before continuing.";
     } else {
-      const receiptPath = feature.receipt ? path.join(featureDir, feature.receipt) : null;
-      const receipt = receiptPath && fs.existsSync(receiptPath) ? readJsonFile(receiptPath, "Verification receipt") : null;
+      const verifyLimit = state.limits?.maxVerifyAttempts ?? config.runtime?.maxVerifyAttempts ?? 3;
 
-      if (receipt && receipt.status === "passed") {
-        state.phase = "needs-review";
-        syncFeatureStatus(featurePath, feature, "needs-review");
-        brief = "Verification passed. Awaiting human review; do not self-accept.";
+      if ((state.verifyAttempts ?? 0) >= verifyLimit) {
+        state.phase = "verify-exhausted";
+        brief = `Verification failed ${state.verifyAttempts} times (limit ${verifyLimit}). A human must review the last receipt and either fix it directly or give specific instructions before verify runs again.`;
       } else {
-        state.phase = "verifying";
-        syncFeatureStatus(featurePath, feature, "verifying");
-        brief = "All tasks done. Run `homero verify`, then `homero run` again.";
+        const receiptPath = feature.receipt ? path.join(featureDir, feature.receipt) : null;
+        const receipt = receiptPath && fs.existsSync(receiptPath) ? readJsonFile(receiptPath, "Verification receipt") : null;
+
+        if (receipt && receipt.status === "passed") {
+          state.phase = "needs-review";
+          syncFeatureStatus(featurePath, feature, "needs-review");
+          brief = "Verification passed. Awaiting human review; do not self-accept.";
+        } else {
+          state.phase = "verifying";
+          syncFeatureStatus(featurePath, feature, "verifying");
+          brief = `All tasks done. Run \`homero verify\`, then \`homero run\` again. (verify attempts: ${state.verifyAttempts ?? 0}/${verifyLimit})`;
+        }
       }
     }
   }
@@ -1610,7 +1641,8 @@ function taskStatus() {
     return;
   }
 
-  console.log(`Feature ${feature.id}  phase=${state.phase}  iterations=${state.iterations}/${state.limits.maxIterations}`);
+  const verifyLimit = state.limits?.maxVerifyAttempts ?? config.runtime?.maxVerifyAttempts ?? 3;
+  console.log(`Feature ${feature.id}  phase=${state.phase}  iterations=${state.iterations}/${state.limits.maxIterations}  verifyAttempts=${state.verifyAttempts ?? 0}/${verifyLimit}`);
 
   const activeTask = state.tasks.find(task => task.id === state.activeTaskId);
   console.log(`Active task: ${activeTask ? `${activeTask.id} ${activeTask.title}` : "none"}`);

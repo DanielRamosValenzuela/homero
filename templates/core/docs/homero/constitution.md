@@ -26,6 +26,7 @@ Homero's CLI lives at `scripts/homero/homero.mjs`, copied there by
 14. UI states and field-level behavior recorded in a spec must be specific to the screen being built. The default `requirements.uiStates` list in `feature.json` is a starting checklist, not proof of analysis. Every form input needs its exact validation error copy, and every interactive element whose behavior is not visually obvious (tooltips, secondary buttons, "more info" links or icons, accordions) must have its behavior confirmed or recorded as an open question.
 15. Before adding a new shared widget or component, search the repo (and `graphify query` for relationship questions) for one that already covers the need. Reuse or extend it — a new file duplicating existing shared UI is a rejection, not a style note.
 16. Before building a new component, confirm Tomaco does not already ship one for the need — check the Figma Code Connect mapping (if configured) and the installed `tomaco-components` package, not just memory. A hand-built lookalike of an existing Tomaco component is a rejection, not a style note.
+17. A referenced secondary surface (modal, drawer, tooltip content, sub-screen) without its own approved Figma coverage must not be invented. Ask whether to source a design for it or leave it out of the feature — both are valid answers; do not word the question as if a design is the only acceptable one.
 
 ## Rejection criteria
 
@@ -42,3 +43,4 @@ A feature plan or implementation should be rejected if it:
 - leaves UI states or validation error copy as the generic default instead of screen-specific content, or leaves an interactive element's behavior unconfirmed
 - introduces a new shared widget or component that duplicates one already available under `paths.widgetsRoot`
 - builds a component that duplicates one `tomaco-components` already ships instead of reusing or composing it
+- implements a referenced surface (modal, drawer, tooltip content, sub-screen) that has no approved Figma source instead of asking whether to source one or skip it

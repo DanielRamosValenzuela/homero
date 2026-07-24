@@ -88,6 +88,8 @@ Example:
 
 Run `node scripts/homero/homero.mjs verify --target . --id <id>` only after the feature gate passes. It runs the configured lint, typecheck, test, and E2E commands, then writes an immutable verification receipt with command output, branch, and Git HEAD under `features/<id>/receipts/`.
 
+`verify` fails `runtime.maxVerifyAttempts` times (3 by default) in a row and it stops running altogether — `state.phase` becomes `verify-exhausted` and the AI agent must not keep retrying on its own. Get a human to review the receipt and either fix the specific failure or say what to do next; `verify` will refuse to run again until `state.verifyAttempts` is reset or the limit is raised in `homero.config.json`.
+
 ## Anti-patterns
 
 - Marking a task done without running verification commands
