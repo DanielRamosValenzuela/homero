@@ -5,6 +5,9 @@ summary/sidebar widget.
 
 ## Required conventions
 
+- Before creating a new shared widget file, search `paths.widgetsRoot` (and
+  prior features under `features/`) for one that already covers the need —
+  reuse or extend it instead of adding a duplicate
 - Put cross-step layout and summary widgets under the path recorded in
   `homero.config.json` `paths.widgetsRoot` (default `src/widgets`)
 - A shared summary widget must not read state stores directly; each step

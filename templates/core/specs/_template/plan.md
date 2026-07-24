@@ -13,6 +13,12 @@
 
 ## Repo patterns to reuse
 
+Before naming a new file under `paths.widgetsRoot` or proposing a new shared
+component, search existing features and that path for one that already
+covers the need (see `docs/homero/architecture.md` and, if installed,
+`graphify query` — `docs/homero/knowledge-graph.md`). List what you found
+below; reuse or extend it, and only propose a new file if nothing matches.
+
 -
 
 ## Files to create or modify

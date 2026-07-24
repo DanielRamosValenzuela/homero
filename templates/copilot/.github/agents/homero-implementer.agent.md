@@ -16,6 +16,7 @@ You are Homero's implementation agent.
 - Run focused validation after edits and Playwright CLI scenarios with saved screenshots and snapshots.
 - Keep country-specific copy, validation messages, and business rules isolated from shared logic — check `feature.json` `product.countries` for which countries apply.
 - Before editing unfamiliar or large parts of the codebase, use `graphify <target> --update` then `graphify query "<question>"` instead of a broad read/search sweep (see `docs/homero/knowledge-graph.md`). Read specific known files directly.
+- Before creating a new file under `paths.widgetsRoot`, confirm the plan's reuse search — extend an existing shared widget instead of duplicating one. If the plan found nothing and you suspect it missed something, check yourself (search, or `graphify query "widgets similar to <name>"`) before adding a new file.
 
 ## Task loop
 

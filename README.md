@@ -1,10 +1,10 @@
-# Homero
+# 🤖 Homero
 
 Harness interno de frontend para Falabella Seguros: CLI + adapters para
 trabajar con GitHub Copilot o Claude Code usando Tomaco, Figma, contratos,
 mocks y verificación con Playwright.
 
-## De un vistazo
+## 🧭 De un vistazo
 
 Homero no es solo un instalador de archivos. Convierte cada feature en un
 **contrato ejecutable** (`feature.json`) y un **loop de tareas con estado en
@@ -31,16 +31,32 @@ flowchart TD
     K -- "aprueba" --> L["Merge manual de la rama<br/>Homero nunca commitea/pushea/mergea"]
 ```
 
-Cada caja de ese diagrama se explica en detalle en [Uso](#uso). Si solo
-quieres los comandos, ve directo a la [tabla de comandos](#comandos).
+Cada caja de ese diagrama se explica en detalle en [Uso](#-uso). Si solo
+quieres los comandos, ve directo a la [tabla de comandos](#-comandos).
 
-## Requisitos
+## 🛡️ Guardrails (no negociables)
+
+Estas reglas viven en `docs/homero/constitution.md` y se aplican vía gates de
+código (`homero feature check` falla si no se cumplen) o vía instrucciones
+que todo agente Homero lee antes de trabajar:
+
+| Gate | Qué garantiza |
+| --- | --- |
+| 🎨 Tomaco obligatorio | Toda UI usa el design system; nada de CSS/Tailwind crudo sin excepción registrada |
+| 🖼️ Figma aprobado | URL, node y versión quedan registrados en cada `feature.json` |
+| 📜 Contrato de backend | `contract-first` / `contract-draft` / excepción explícita — nunca un mock inventado en silencio (`homero.mjs` lo bloquea en código) |
+| ❓ Preguntas específicas, no genéricas | El error de validación exacto por campo y el comportamiento de cada elemento interactivo deben confirmarse — dejar el estado por defecto no basta (principio 14) |
+| ♻️ Reutilización de widgets | Antes de crear un widget compartido nuevo, hay que buscar si una feature anterior ya construyó uno (principio 15) |
+| 🧪 Evidencia Playwright CLI | Screenshots y snapshots reales antes de pasar a `needs-review` |
+| 🔒 Solo humanos mergean | Homero nunca commitea, pushea, ni se autoaprueba |
+
+## ⚙️ Requisitos
 
 - Git, Node.js, `pnpm`
 - Un repositorio frontend con `package.json`
 - Figma aprobado y un contrato backend (o ejemplos/cURLs) por feature
 
-## Instalar
+## 📦 Instalar
 
 ```powershell
 pnpm add -D github:DanielRamosValenzuela/homero#v0.1.0
@@ -101,7 +117,7 @@ así que una feature puede seguir tocando otro paquete del monorepo si hace
 falta — solo que el contrato, el estado del loop y la verificación quedan
 scoped a la app donde corriste `init`.
 
-## Uso
+## 🧵 Uso
 
 Homero organiza el trabajo en **features**: una unidad con su propia rama,
 contrato (`feature.json`), spec y lista de tareas. El ciclo completo es
@@ -271,7 +287,38 @@ mergea por su cuenta) y luego limpia el worktree:
 git worktree remove ..\.homero-worktrees\mi-repo\FEAT-042
 ```
 
-## Comandos
+## 🤝 Agentes y delegación (Claude / Copilot)
+
+Con `--client claude` o `--client both`, el paso 3 ("Trabaja el feature...")
+no lo hace un solo modelo genérico: `homero-coordinator` delega en agentes
+especializados, cada uno con su propio scope y permisos. Esto es lo que pasa
+por dentro cuando le das una sola instrucción:
+
+```mermaid
+flowchart TD
+    H["👤 Humano:<br/>'implementa esta pantalla de Figma: URL'"] --> C["🎯 homero-coordinator<br/>corre el CLI, nunca se autoaprueba"]
+    C --> Disc["🔍 homero-discovery<br/>investiga stack y contexto"]
+    C --> Fig["🎨 homero-figma<br/>único con Figma MCP<br/>skills: seguros-falabella-ui-ux → tomaco-design-system"]
+    C --> Con["📜 homero-contracts<br/>contrato backend, mocks, estados"]
+    C --> Plan["🧩 homero-planner<br/>plan técnico + búsqueda de reutilización"]
+    Disc --> C
+    Fig --> C
+    Con --> C
+    Plan --> C
+    C --> Impl["🛠️ homero-implementer<br/>único que edita código"]
+    Impl --> C
+    C --> Rev["✅ homero-reviewer<br/>bloquea specs genéricos o widgets duplicados"]
+    Rev --> C
+    C --> NR["📋 needs-review<br/>humano aprueba y mergea"]
+```
+
+`homero-figma` es el único agente con acceso al MCP de Figma — los demás
+dependen de lo que él devuelve. `homero-implementer` es el único que edita
+archivos de producto. Si tu cliente de IA no soporta agentes personalizados,
+`docs/homero/agent-roles.md` define los mismos roles para seguirlos en una
+sola sesión.
+
+## 📋 Comandos
 
 Usa `pnpm exec homero <comando> --help` para ver los argumentos disponibles.
 
@@ -309,7 +356,7 @@ Usa `pnpm exec homero <comando> --help` para ver los argumentos disponibles.
 | --- | --- |
 | `homero generate form` | Genera un formulario repetitivo por país. |
 
-## Desarrollo local
+## 🧪 Desarrollo local
 
 ```powershell
 npm run homero -- init --target C:\ruta\al\repo --client both --project-name mi-proyecto

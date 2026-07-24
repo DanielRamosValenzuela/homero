@@ -32,6 +32,19 @@
 
 -
 
+## Interactive elements and field-level behavior
+
+For every form input: label, required or optional, validation rule, and the
+exact error message copy — not a placeholder.
+
+For every interactive element whose behavior is not visually obvious from
+Figma (tooltips, info icons, secondary/ghost buttons, "more info" links,
+accordions, etc.): what happens when it's triggered.
+
+Anything not confirmed here goes under Open questions below — it does not
+get a generic or invented default. The default `requirements.uiStates` list
+in `feature.json` is a starting checklist, not proof this section was done.
+
 ## Backend contract and mock requirements
 
 - Contract mode: contract-first | contract-draft | no-contract-exception

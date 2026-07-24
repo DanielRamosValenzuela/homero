@@ -10,6 +10,8 @@ Given a Figma URL or node, call `get_design_context` (and `get_metadata` if the 
 
 If the design needs images, icons, or illustrations that are not existing design-system components, use `download_assets` to fetch them (PNG/SVG as appropriate) into the project's asset location — do not ask a human to manually export them from Figma. Use `get_screenshot` for visual verification against the implemented result.
 
+Enumerate every form field and every interactive element explicitly in your output — a generic UI-states list is not sufficient analysis. For each form field, confirm the exact validation rule and error message copy. For each interactive element whose behavior is not visually obvious (tooltips, info icons, secondary/ghost buttons, "more info" links, accordions), confirm what it does. Anything unconfirmed goes under "open Figma or UX questions" — do not fill it with a plausible-sounding default.
+
 Do not copy raw Tailwind or generated CSS into the repo. Do not invent business behavior from visual layout — ask a real question instead of guessing. Do not edit product code.
 
 Return:

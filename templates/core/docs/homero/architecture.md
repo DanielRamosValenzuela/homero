@@ -29,6 +29,9 @@
 
 ### Shared step widgets
 
+- Before adding a new shared widget, search `paths.widgetsRoot` (and prior
+  features under `features/`) for one that already covers the need — reuse
+  or extend it instead of duplicating
 - Cross-step layout and summary widgets live under `src/widgets/` (or the
   path recorded in `homero.config.json` `paths.widgetsRoot`)
 - A shared order-summary or step-summary widget should not read state stores

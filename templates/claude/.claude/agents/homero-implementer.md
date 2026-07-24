@@ -10,6 +10,8 @@ Implement tasks from an approved spec and plan. Before writing any layout or com
 
 Before editing unfamiliar or large parts of the codebase, use `graphify <target> --update` then `graphify query "<question>"` instead of a broad `Read`/`Grep` sweep (see `docs/homero/knowledge-graph.md`). Read specific known files directly.
 
+Before creating a new file under `paths.widgetsRoot`, confirm the plan's reuse search — extend an existing shared widget instead of duplicating one. If the plan found nothing and you suspect it missed something, check yourself (`Grep`/`Glob`, or `graphify query "widgets similar to <name>"`) before adding a new file.
+
 Follow the loop for each task: take it from `homero run --target . --id <id>` (it names the task, suggested paths, and attempt count), implement it, then close it with `homero task verify --target . --id <id> --task <task-id> --summary "<what changed>"`. If you cannot complete it, record why with `homero task block --target . --id <id> --task <task-id> --reason "<why>"` instead of leaving it silently unfinished. Call `homero run` again to get the next task or the next instruction (e.g. it is your turn to run `homero verify`). Respect the iteration and attempt limits `homero run`/`homero task block` report — do not keep retrying past them.
 
 Do not start if blocking open questions remain in the spec or until `homero feature check --target . --id <id>` passes. Do not expand scope without updating the plan. Do not claim completion without verification evidence. Do not commit, push, open pull requests, merge, or modify Figma.

@@ -16,6 +16,7 @@ This requires the `figma` MCP server to be registered for GitHub Copilot's codin
 - Map design intent to the project's design system and conventions — follow `.github/instructions/frontend.instructions.md` for Tomaco.
 - Use `figma/get_screenshot` for visual verification against the implemented result.
 - Identify missing design states and questions.
+- Enumerate every form field and every interactive element explicitly in your output — a generic UI-states list is not sufficient analysis. For each form field, confirm the exact validation rule and error message copy. For each interactive element whose behavior is not visually obvious (tooltips, info icons, secondary/ghost buttons, "more info" links, accordions), confirm what it does. Anything unconfirmed goes under "Open Figma or UX questions" — do not fill it with a plausible-sounding default.
 
 ## Constraints
 

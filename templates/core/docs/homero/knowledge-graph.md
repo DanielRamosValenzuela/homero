@@ -36,6 +36,15 @@ Use `graphify path "<A>" "<B>"` to trace how two modules/components connect, and
 over `Grep`/`Read` sweeps across many files when the question is about
 relationships or unfamiliar structure, not a known exact location.
 
+## Example queries
+
+- `graphify query "widgets or components similar to a step header/summary"`
+  — before adding a new shared widget, check whether a prior feature already
+  built one (required by `docs/homero/constitution.md` principle 15).
+- `graphify query "where is the RUT/DNI validation logic used"`
+- `graphify explain "OrderSummaryWidget"`
+- `graphify path "CheckoutStep" "OrderSummaryWidget"`
+
 ## When not to use it
 
 - The target file(s) are already known (a specific component, a specific test) —
