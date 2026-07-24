@@ -1882,6 +1882,8 @@ function init() {
     copyRecursive(sourceRoot, targetRoot, { force, projectName, summary });
   }
 
+  ensureGitignoreEntry(targetRoot, ".mcp.json");
+
   const cliSourcePath = fileURLToPath(import.meta.url);
   const cliDestinationPath = path.join(targetRoot, "scripts", "homero", "homero.mjs");
   const cliExisted = fs.existsSync(cliDestinationPath);
@@ -1911,13 +1913,7 @@ function init() {
   console.log(`Overwritten:   ${summary.overwritten}`);
   console.log(`Skipped:       ${summary.skipped}`);
   console.log("");
-  console.log("Homero is now a plain file in your repo, not a devDependency —");
-  console.log("nothing was added to package.json or your lockfile. Run every other");
-  console.log("command from inside the target repo with:");
-  console.log("  node scripts/homero/homero.mjs <command> --target . ...");
-  console.log("`init` and `validate` still need the Homero source template and must");
-  console.log("run via `npx github:DanielRamosValenzuela/homero <command> ...`.");
-  console.log("To update Homero later, re-run the same npx init command with --force.");
+  console.log("Next: node scripts/homero/homero.mjs discover --target .");
 }
 
 function validateConfig(targetRoot, errors) {

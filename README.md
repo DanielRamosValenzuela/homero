@@ -96,11 +96,17 @@ Para actualizar el CLI o los templates más adelante, repetí el mismo `npx
 gestiona, incluido `homero.config.json`, así que corré `discover` de nuevo
 después si tus respuestas de configuración habían cambiado.
 
+`init` copia `mcp.example.json` (sin secretos, solo la URL del MCP de Figma)
+y agrega `.mcp.json` al `.gitignore`. Copiá `mcp.example.json` a `.mcp.json`
+y completá ahí tus servidores MCP reales (Figma y los que sumes después) —
+`.mcp.json` queda gitignoreado porque con el tiempo puede terminar con
+tokens, mismo patrón que `.env` vs `.env.example` en este repo.
+
 Si usás `copilot`, `homero-figma` necesita el servidor MCP de Figma registrado
 para el coding agent de Copilot a nivel de repo u organización (repo
 **Settings → Copilot → Coding agent → MCP servers**) — es una superficie de
-configuración distinta a `mcp.example.json`, que solo conecta Figma MCP para
-uso local/Claude. Sin ese registro, `homero-figma` no puede leer el diseño ni
+configuración distinta a `.mcp.json`, que solo conecta Figma MCP para uso
+local/Claude. Sin ese registro, `homero-figma` no puede leer el diseño ni
 bajar assets por su cuenta en Copilot.
 
 ```powershell
