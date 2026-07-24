@@ -7,10 +7,16 @@ import { fileURLToPath } from "node:url";
 
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(currentDir, "..");
-const cliPath = path.join(repoRoot, "packages", "cli", "bin", "homero.mjs");
+const sourceCliPath = path.join(repoRoot, "packages", "cli", "bin", "homero.mjs");
 const targetRoot = fs.mkdtempSync(path.join(os.tmpdir(), "homero-self-test-"));
+const copiedCliPath = path.join(targetRoot, "scripts", "homero", "homero.mjs");
 
-function run(args) {
+// `init`/`validate` always run from the source repo (they need templates/).
+// Everything else runs from the file `init` copies into the target repo, to
+// prove Homero works standalone there with zero devDependency/registry access.
+let activeCliPath = sourceCliPath;
+
+function run(args, { cliPath = activeCliPath } = {}) {
   const result = spawnSync(process.execPath, [cliPath, ...args], {
     cwd: repoRoot,
     stdio: "inherit"
@@ -21,7 +27,7 @@ function run(args) {
   }
 }
 
-function runExpectFailure(args) {
+function runExpectFailure(args, { cliPath = activeCliPath } = {}) {
   const result = spawnSync(process.execPath, [cliPath, ...args], {
     cwd: repoRoot,
     stdio: "inherit"
@@ -44,9 +50,20 @@ function runGit(args) {
   }
 }
 
-run(["init", "--target", targetRoot, "--client", "both", "--project-name", "homero-self-test"]);
+run(["init", "--target", targetRoot, "--client", "both", "--project-name", "homero-self-test"], { cliPath: sourceCliPath });
+
+if (!fs.existsSync(copiedCliPath)) {
+  console.error(`Expected homero init to copy the CLI itself into the target repo: ${copiedCliPath}`);
+  process.exit(1);
+}
+
+// From here on, use the copy `init` placed in the target repo — this is what
+// proves Homero is not a devDependency and needs no registry/install step.
+activeCliPath = copiedCliPath;
+
 run(["discover", "--target", targetRoot, "--defaults", "--force"]);
-run(["validate", "--target", targetRoot, "--client", "both"]);
+run(["validate", "--target", targetRoot, "--client", "both"], { cliPath: sourceCliPath });
+runExpectFailure(["validate", "--target", targetRoot, "--client", "both"], { cliPath: copiedCliPath });
 fs.writeFileSync(
   path.join(targetRoot, "package.json"),
   `${JSON.stringify({ name: "homero-self-test", private: true, packageManager: "pnpm@10.0.0" }, null, 2)}\n`,

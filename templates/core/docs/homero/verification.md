@@ -16,7 +16,7 @@ Adjust the commands in `homero.config.json` to the real project scripts.
 Every non-trivial frontend feature must start with:
 
 ```text
-homero feature create --target . --id <id> --name <name> --figma <url> --figma-version <version> --contract-mode <mode> ...
+node scripts/homero/homero.mjs feature create --target . --id <id> --name <name> --figma <url> --figma-version <version> --contract-mode <mode> ...
 ```
 
 It creates a local `feature/<id>-<slug>` branch without committing, plus:
@@ -86,7 +86,7 @@ Example:
 
 ## Receipt
 
-Run `homero verify --target . --id <id>` only after the feature gate passes. It runs the configured lint, typecheck, test, and E2E commands, then writes an immutable verification receipt with command output, branch, and Git HEAD under `features/<id>/receipts/`.
+Run `node scripts/homero/homero.mjs verify --target . --id <id>` only after the feature gate passes. It runs the configured lint, typecheck, test, and E2E commands, then writes an immutable verification receipt with command output, branch, and Git HEAD under `features/<id>/receipts/`.
 
 ## Anti-patterns
 

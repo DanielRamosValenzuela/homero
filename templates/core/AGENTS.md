@@ -1,5 +1,14 @@
 # __PROJECT_NAME__ - Homero harness
 
+Homero is not a devDependency: `homero init` copied its CLI directly into
+this repo at `scripts/homero/homero.mjs`. Every `homero <command>` mentioned
+in this repo's docs and agents means
+`node scripts/homero/homero.mjs <command> --target . ...` — except
+`init`/`validate`, which need the Homero source template and run via
+`npx github:DanielRamosValenzuela/homero#v0.1.0 <command> ...`. There is no
+`homero` binary on PATH; nothing about Homero lives in `package.json` or the
+lockfile.
+
 Read this repo in the following order before making non-trivial frontend changes:
 
 1. `docs/homero/business.md`
@@ -39,11 +48,11 @@ Read this repo in the following order before making non-trivial frontend changes
 
 - New form scaffold:
   `node .\scripts\homero\new-form.mjs --name UserInfoForm --country cl`
-- Harness validation:
-  `homero validate --target . --client copilot`
+- Harness validation (needs the Homero source, not the local copy):
+  `npx github:DanielRamosValenzuela/homero#v0.1.0 validate --target . --client copilot`
 - Feature gate:
-  `homero feature check --target . --id FEAT-001`
+  `node scripts/homero/homero.mjs feature check --target . --id FEAT-001`
 - Feature verification receipt:
-  `homero verify --target . --id FEAT-001`
+  `node scripts/homero/homero.mjs verify --target . --id FEAT-001`
 - Knowledge graph refresh + query:
   `graphify src --update` then `graphify query "<question>"`

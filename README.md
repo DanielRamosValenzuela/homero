@@ -14,7 +14,7 @@ trabajo exactamente donde quedó — aunque cambie de sesión o de cliente
 
 ```mermaid
 flowchart TD
-    A["pnpm add -D homero"] --> B["homero init"]
+    A["npx github:...homero init<br/>(no es devDependency)"] --> B["CLI copiado a<br/>scripts/homero/homero.mjs"]
     B --> C["homero discover"]
     C --> D["homero validate"]
     D --> E["homero feature create<br/>crea worktree + rama + feature.json"]
@@ -58,14 +58,34 @@ que todo agente Homero lee antes de trabajar:
 
 ## 📦 Instalar
 
+Homero **no es una dependencia del proyecto**: `init` copia su propio CLI
+directo al repo (`scripts/homero/homero.mjs`) y no toca `package.json` ni el
+lockfile. La primera vez se corre vía `npx` (necesita acceso a GitHub, no a
+un registry):
+
 ```powershell
-pnpm add -D github:DanielRamosValenzuela/homero#v0.1.0
-pnpm exec homero init --target . --client both --project-name mi-proyecto
-pnpm exec homero discover --target .
-pnpm exec homero validate --target . --client both
+npx github:DanielRamosValenzuela/homero#v0.1.0 init --target . --client both --project-name mi-proyecto
 ```
 
-`--client` es `copilot`, `claude`, o `both`.
+De acá en adelante, todo corre local — sin red, sin registry, sin `pnpm
+install` de por medio:
+
+```powershell
+node scripts/homero/homero.mjs discover --target .
+```
+
+`init` y `validate` son los únicos comandos que necesitan el source de
+Homero (por eso van por `npx`, no por el archivo copiado):
+
+```powershell
+npx github:DanielRamosValenzuela/homero#v0.1.0 validate --target . --client both
+```
+
+`--client` es `copilot`, `claude`, o `both`. Para actualizar el CLI o los
+templates más adelante, repetí el mismo comando de `init` con `--force` —
+ojo, `--force` sobrescribe todo lo que Homero gestiona, incluido
+`homero.config.json`, así que corré `discover` de nuevo después si tus
+respuestas de configuración habían cambiado.
 
 Si usás `copilot`, `homero-figma` necesita el servidor MCP de Figma registrado
 para el coding agent de Copilot a nivel de repo u organización (repo
@@ -75,14 +95,14 @@ uso local/Claude. Sin ese registro, `homero-figma` no puede leer el diseño ni
 bajar assets por su cuenta en Copilot.
 
 ```powershell
-pnpm exec homero setup playwright --target .
+node scripts/homero/homero.mjs setup playwright --target .
 ```
 
 Instala `@playwright/test`, `@playwright/cli`, `@axe-core/playwright` y
 Chromium (usa `--dry-run` para ver qué haría antes de instalar).
 
 ```powershell
-pnpm exec homero setup graphify --target .
+node scripts/homero/homero.mjs setup graphify --target .
 ```
 
 Instala [graphify](https://github.com/Graphify-Labs/graphify) (vía `uv`,
@@ -106,8 +126,8 @@ Si el repo es un **monorepo**, instala Homero por app, apuntando `--target` a
 la carpeta de esa app (no a la raíz del workspace):
 
 ```powershell
-pnpm exec homero init --target apps/web --client both --project-name mi-app-web
-pnpm exec homero discover --target apps/web
+npx github:DanielRamosValenzuela/homero#v0.1.0 init --target apps/web --client both --project-name mi-app-web
+node apps/web/scripts/homero/homero.mjs discover --target apps/web
 ```
 
 Esto crea un `homero.config.json`, `docs/homero/`, `features/` y `specs/`
@@ -149,7 +169,7 @@ que mirar el feature a mano en vez de seguir reintentando a ciegas.
 ### 1. Crear el feature
 
 ```powershell
-pnpm exec homero feature create `
+node scripts/homero/homero.mjs feature create `
   --target . `
   --id FEAT-042 `
   --name "Cotizador de vida" `
@@ -195,7 +215,7 @@ de desarrollo (si consume backend), estados de carga/éxito/vacío/error, y
 Figma + versión aprobados. Luego:
 
 ```powershell
-pnpm exec homero feature check --target . --id FEAT-042
+node scripts/homero/homero.mjs feature check --target . --id FEAT-042
 ```
 
 Bloquea el trabajo si falta Figma, contrato, mocks, criterios, evidencia, o si
@@ -220,11 +240,11 @@ es la mecánica completa:
 
 ```powershell
 # Declara las tareas del feature (una vez, al empezar)
-pnpm exec homero task add --target . --id FEAT-042 --title "Armar formulario"
-pnpm exec homero task add --target . --id FEAT-042 --title "Agregar validaciones"
+node scripts/homero/homero.mjs task add --target . --id FEAT-042 --title "Armar formulario"
+node scripts/homero/homero.mjs task add --target . --id FEAT-042 --title "Agregar validaciones"
 
 # Pide la próxima tarea
-pnpm exec homero run --target . --id FEAT-042
+node scripts/homero/homero.mjs run --target . --id FEAT-042
 ```
 
 `homero run` es el único comando que avanza el loop. Cada vez que lo llamas:
@@ -242,10 +262,10 @@ Cierra cada tarea según cómo te fue:
 
 ```powershell
 # Terminada
-pnpm exec homero task verify --target . --id FEAT-042 --task T-001 --summary "Formulario armado con Tomaco"
+node scripts/homero/homero.mjs task verify --target . --id FEAT-042 --task T-001 --summary "Formulario armado con Tomaco"
 
 # No pudiste completarla
-pnpm exec homero task block --target . --id FEAT-042 --task T-001 --reason "Falta el contrato de backend"
+node scripts/homero/homero.mjs task block --target . --id FEAT-042 --task T-001 --reason "Falta el contrato de backend"
 ```
 
 `task block` reintenta la tarea hasta `runtime.maxAttemptsPerTask` intentos;
@@ -257,7 +277,7 @@ En cualquier momento, para ver en qué quedó todo (fase, iteraciones, tareas,
 últimos eventos):
 
 ```powershell
-pnpm exec homero task status --target . --id FEAT-042
+node scripts/homero/homero.mjs task status --target . --id FEAT-042
 ```
 
 Esto es lo que hace que el trabajo se pueda **retomar**: todo el progreso vive
@@ -272,7 +292,7 @@ La IA guarda screenshots y snapshots de Playwright CLI bajo
 `features/FEAT-042/evidence/`. Cuando todas las tareas estén hechas:
 
 ```powershell
-pnpm exec homero verify --target . --id FEAT-042
+node scripts/homero/homero.mjs verify --target . --id FEAT-042
 ```
 
 Ejecuta lint, typecheck, tests y E2E reales según `homero.config.json`. Si
@@ -320,7 +340,7 @@ sola sesión.
 
 ## 📋 Comandos
 
-Usa `pnpm exec homero <comando> --help` para ver los argumentos disponibles.
+Usa `node scripts/homero/homero.mjs <comando> --help` para ver los argumentos disponibles (`init`/`validate` van por `npx github:DanielRamosValenzuela/homero#v0.1.0 <comando> --help` — necesitan el source, no el archivo copiado).
 
 **Setup del repo** — una vez por proyecto
 

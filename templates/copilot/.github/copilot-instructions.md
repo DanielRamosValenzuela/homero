@@ -1,5 +1,12 @@
 # Homero Copilot Instructions
 
+Homero is not a devDependency: `homero init` copied its CLI directly into
+this repo at `scripts/homero/homero.mjs`. Every `homero <command>` below
+means `node scripts/homero/homero.mjs <command> --target . ...` — except
+`init`/`validate`, which need the Homero source template and run via
+`npx github:DanielRamosValenzuela/homero#v0.1.0 <command> ...`. There is no
+`homero` binary on PATH.
+
 Before making non-trivial frontend changes, read:
 
 1. `AGENTS.md`
@@ -21,5 +28,5 @@ Use Homero as the harness contract:
 - Prefer `scripts/homero/new-form.mjs` for repeated form scaffolds.
 - Use Playwright CLI in the feature session to run user flows and save a screenshot plus snapshot for every scenario under `features/<id>/evidence/`.
 - Use `graphify query` instead of broad manual file-by-file reads when exploring unfamiliar or large parts of the codebase.
-- Run `homero feature check` before implementation and `homero verify` before claiming completion.
+- Run `node scripts/homero/homero.mjs feature check --target . --id <id>` before implementation and `node scripts/homero/homero.mjs verify --target . --id <id>` before claiming completion.
 - Do not commit, push, create a pull request, merge, or modify Figma.

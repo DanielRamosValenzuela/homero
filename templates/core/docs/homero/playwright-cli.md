@@ -9,7 +9,8 @@ Playwright Test coverage.
 1. Read `features/<id>/feature.json` and use its exact feature ID.
 2. Start the repository's configured local development environment.
 3. Confirm the CLI is available with `pnpm exec playwright-cli --help`. If it is
-   unavailable, ask the user to run `homero setup playwright --target .`; do not
+   unavailable, ask the user to run
+   `node scripts/homero/homero.mjs setup playwright --target .`; do not
    install global tools silently.
 4. Use a named session: `homero-<id>`.
 
@@ -44,7 +45,7 @@ layouts differ.
 
 1. Run the focused persistent Playwright Test suite configured in
    `homero.config.json`.
-2. Run `homero feature check --target . --id <id>` from the feature branch.
-3. Run `homero verify --target . --id <id>` from the same branch.
+2. Run `node scripts/homero/homero.mjs feature check --target . --id <id>` from the feature branch.
+3. Run `node scripts/homero/homero.mjs verify --target . --id <id>` from the same branch.
 4. Do not update visual baselines, commit, push, create a pull request, merge, or
    modify Figma. A human owns those actions.

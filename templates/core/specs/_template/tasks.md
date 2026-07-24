@@ -11,7 +11,7 @@
 - [ ] Implement business rules and validation.
 - [ ] Add or update focused tests.
 - [ ] Use Playwright CLI to run required user scenarios and save screenshots plus snapshots under `features/__FEATURE_ID__/evidence/`.
-- [ ] Run `homero verify --target . --id __FEATURE_ID__` and record the receipt.
+- [ ] Run `node scripts/homero/homero.mjs verify --target . --id __FEATURE_ID__` and record the receipt.
 - [ ] Compare implementation against the spec and plan.
 
 ## Verification evidence

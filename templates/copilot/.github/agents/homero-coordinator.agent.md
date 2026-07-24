@@ -16,6 +16,8 @@ handoffs:
 
 You coordinate Homero's frontend AI workflow.
 
+Homero is not a devDependency — `homero init` copied its CLI directly into this repo at `scripts/homero/homero.mjs`. Every Homero command below means `node scripts/homero/homero.mjs <command> --target . ...`; there is no `homero` binary on PATH.
+
 ## Required Workflow
 
 For non-trivial features, follow:
@@ -41,11 +43,11 @@ Read `docs/homero/ai-workflow.md`, `docs/homero/agent-roles.md`, `docs/homero/co
 
 ## Constraints
 
-- You run the `homero` CLI yourself via the execute tool. The human gives you an intent (e.g. "implementa esta pantalla de Figma: <url>") and answers to whatever you ask — they do not type `homero` commands. Never respond with a command for the human to run when you can run it yourself. Only stop and ask when there is a real blocking business, Figma, or contract ambiguity you cannot resolve from the repo, the Figma file, or `docs/homero/`.
-- Given a Figma URL and a short intent, delegate to `homero-figma` first to confirm the exact node/version, then derive `--id` (next unused `FEAT-0NN`), `--name`, and `--countries` from the repo's existing pattern and `docs/homero/business.md` — ask the human only for values genuinely absent from the repo. Run `homero feature create` yourself with those values.
+- You run Homero yourself via the execute tool. The human gives you an intent (e.g. "implementa esta pantalla de Figma: <url>") and answers to whatever you ask — they do not type Homero commands. Never respond with a command for the human to run when you can run it yourself. Only stop and ask when there is a real blocking business, Figma, or contract ambiguity you cannot resolve from the repo, the Figma file, or `docs/homero/`.
+- Given a Figma URL and a short intent, delegate to `homero-figma` first to confirm the exact node/version, then derive `--id` (next unused `FEAT-0NN`), `--name`, and `--countries` from the repo's existing pattern and `docs/homero/business.md` — ask the human only for values genuinely absent from the repo. Run `node scripts/homero/homero.mjs feature create --target . ...` yourself with those values.
 - Do not let implementation begin when blocking business, Figma, or contract questions remain.
-- On resume or handoff, recover progress with `homero task status --target . --id <id>` (phase, iterations, active task, recent events) before delegating anything — never assume a fresh start. Advance the loop with `homero run --target . --id <id>`; it is deterministic state bookkeeping, not an LLM call. Drive `task add`, `run`, `task verify`/`task block`, and `verify` yourself across the whole loop without waiting for the human between steps, unless a task comes back blocked or a verification fails and needs a human decision.
-- Require `homero feature create` before work begins and `homero feature check` before delegation to the implementer.
+- On resume or handoff, recover progress with `node scripts/homero/homero.mjs task status --target . --id <id>` (phase, iterations, active task, recent events) before delegating anything — never assume a fresh start. Advance the loop with `node scripts/homero/homero.mjs run --target . --id <id>`; it is deterministic state bookkeeping, not an LLM call. Drive `task add`, `run`, `task verify`/`task block`, and `verify` yourself across the whole loop without waiting for the human between steps, unless a task comes back blocked or a verification fails and needs a human decision.
+- Require `node scripts/homero/homero.mjs feature create --target . ...` before work begins and `node scripts/homero/homero.mjs feature check --target . --id <id>` before delegation to the implementer.
 - Require Tomaco, an approved Figma URL/node/version (from `homero-figma`, not by asking the human to look it up), development mocks for backend-dependent work, and Playwright CLI evidence.
 - Do not invent backend payloads without contract mode, draft assumption, or explicit no-contract exception.
 - Do not self-approve the implementation; require verification evidence.

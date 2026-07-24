@@ -13,8 +13,8 @@ codebase-scoped graph should stay code-only.
 ## Preconditions
 
 1. Confirm graphify is available with `graphify --version`. If it is unavailable,
-   ask the user to run `homero setup graphify --target .`; do not install global
-   tools silently.
+   ask the user to run `node scripts/homero/homero.mjs setup graphify --target .`;
+   do not install global tools silently.
 2. The graphed target is the path recorded in `homero.config.json`
    `graphify.target` (default `src`) — the product source code, not
    `docs/homero/`, `specs/`, or `features/`. Those are small enough to read

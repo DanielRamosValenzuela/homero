@@ -1,5 +1,10 @@
 # AI workflow
 
+Homero is not a devDependency: `homero init` copied its CLI directly into
+this repo at `scripts/homero/homero.mjs`. Every `homero <command>` on this
+page means `node scripts/homero/homero.mjs <command> --target . ...` — there
+is no `homero` binary on PATH.
+
 Homero uses a spec-driven frontend workflow. For non-trivial features, the AI
 agent should move through these phases in order:
 
@@ -64,13 +69,15 @@ These files are the source of truth for resuming after an interruption
 (a new session, a client switch, running out of context).
 
 - Before doing anything on an existing feature, run
-  `homero task status --target . --id <id>` to see the current phase,
-  iteration count, active task, and recent events.
-- Call `homero run --target . --id <id>` to get the next task to implement. It
-  enforces `runtime.maxIterations` and reports the exact next commands.
-- Close a task with `homero task verify --target . --id <id> --task <task-id>
-  --summary "<what changed>"`, or record a failed attempt with
-  `homero task block --target . --id <id> --task <task-id> --reason "<why>"`
-  (bounded by `runtime.maxAttemptsPerTask`).
+  `node scripts/homero/homero.mjs task status --target . --id <id>` to see
+  the current phase, iteration count, active task, and recent events.
+- Call `node scripts/homero/homero.mjs run --target . --id <id>` to get the
+  next task to implement. It enforces `runtime.maxIterations` and reports
+  the exact next commands.
+- Close a task with `node scripts/homero/homero.mjs task verify --target .
+  --id <id> --task <task-id> --summary "<what changed>"`, or record a failed
+  attempt with `node scripts/homero/homero.mjs task block --target . --id
+  <id> --task <task-id> --reason "<why>"` (bounded by
+  `runtime.maxAttemptsPerTask`).
 - These commands never call an LLM; they are deterministic state updates the
   agent calls between its own reasoning steps.
