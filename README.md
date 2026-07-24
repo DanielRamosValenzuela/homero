@@ -58,76 +58,55 @@ que todo agente Homero lee antes de trabajar:
 
 ## 📦 Instalar
 
-Homero **no es una dependencia del proyecto**. Corré esto una vez, parado en
-la raíz de tu repo:
+Homero **no es una dependencia del proyecto**. Un solo comando, parado en la
+raíz de tu repo:
 
 ```powershell
 npx github:DanielRamosValenzuela/homero
 ```
 
-Y listo — queda una carpeta `scripts/homero/` en tu proyecto con el CLI
-copiado adentro (`scripts/homero/homero.mjs`), más los docs/agentes de
-`--client both` (Copilot y Claude). No toca `package.json` ni el lockfile,
-no hay registry de por medio, nada que instalar globalmente.
+Copia el CLI a `scripts/homero/homero.mjs` y los adapters de `--client both`
+(Copilot + Claude) — sin tocar `package.json` ni el lockfile ni instalar
+nada global. Equivale a `init --target . --client both --project-name
+<carpeta>`; agregá `--client claude|copilot` o `--project-name` si querés
+otro valor.
 
-Ese comando sin flags es equivalente a
-`init --target . --client both --project-name <nombre-de-la-carpeta>`. Si
-querés elegir cliente o nombre, agregalos:
-
-```powershell
-npx github:DanielRamosValenzuela/homero init --client claude --project-name mi-proyecto
-```
-
-De acá en adelante, todo corre local — sin red, sin `npx` de por medio:
+De acá en adelante todo corre local, sin `npx`:
 
 ```powershell
 node scripts/homero/homero.mjs discover --target .
 ```
 
-`init` y `validate` son los únicos dos comandos que siguen yendo por `npx`
-(necesitan el source de Homero, no el archivo ya copiado):
+`init` y `validate` son los únicos comandos que siguen yendo por `npx`
+(necesitan el source de Homero, no el archivo ya copiado). Para actualizar
+el CLI o los templates, repetí el mismo `npx ... init` con `--force` — ojo,
+pisa todo lo que Homero gestiona, incluido `homero.config.json`, así que
+corré `discover` de nuevo después.
 
-```powershell
-npx github:DanielRamosValenzuela/homero validate --target . --client both
-```
-
-Para actualizar el CLI o los templates más adelante, repetí el mismo `npx
-... init` con `--force` — ojo, `--force` sobrescribe todo lo que Homero
-gestiona, incluido `homero.config.json`, así que corré `discover` de nuevo
-después si tus respuestas de configuración habían cambiado.
-
-`init` copia `mcp.example.json` (sin secretos, solo la URL del MCP de Figma)
-y agrega `.mcp.json` al `.gitignore`. Copiá `mcp.example.json` a `.mcp.json`
-y completá ahí tus servidores MCP reales (Figma y los que sumes después) —
-`.mcp.json` queda gitignoreado porque con el tiempo puede terminar con
-tokens, mismo patrón que `.env` vs `.env.example` en este repo.
-
-Si usás `copilot`, `homero-figma` necesita el servidor MCP de Figma registrado
-para el coding agent de Copilot a nivel de repo u organización (repo
-**Settings → Copilot → Coding agent → MCP servers**) — es una superficie de
-configuración distinta a `.mcp.json`, que solo conecta Figma MCP para uso
-local/Claude. Sin ese registro, `homero-figma` no puede leer el diseño ni
-bajar assets por su cuenta en Copilot.
+Copiá `mcp.example.json` a `.mcp.json` y completá tus servidores MCP reales
+(Figma y los que sumes) — `.mcp.json` queda gitignoreado porque puede
+terminar con tokens, mismo patrón que `.env`/`.env.example`. Con `--client
+copilot` además hay que registrar el servidor de Figma para el coding agent
+a nivel de repo u organización (**Settings → Copilot → Coding agent → MCP
+servers**); es una superficie distinta de `.mcp.json`, que solo sirve para
+uso local/Claude.
 
 ```powershell
 node scripts/homero/homero.mjs setup playwright --target .
 ```
 
 Instala `@playwright/test`, `@playwright/cli`, `@axe-core/playwright` y
-Chromium (usa `--dry-run` para ver qué haría antes de instalar).
+Chromium (`--dry-run` para previsualizar).
 
 ```powershell
 node scripts/homero/homero.mjs setup graphify --target .
 ```
 
-Instala [graphify](https://github.com/Graphify-Labs/graphify) (vía `uv`,
-`pipx`, o `pip` — requiere Python 3.10+) y agrega `graphify-out/` al
-`.gitignore`. Es parte del setup estándar, igual que Playwright: la
-constitución del proyecto (`docs/homero/constitution.md`) exige que los
-agentes usen `graphify query` en vez de leer archivo por archivo al explorar
-código no familiar — ver `docs/homero/knowledge-graph.md`. No es un gate de
-`homero validate`/`feature check`, porque no es evidencia de una feature, es
-una herramienta de productividad/costo de tokens.
+Instala [graphify](https://github.com/Graphify-Labs/graphify) y agrega
+`graphify-out/` al `.gitignore`. La constitución (`docs/homero/constitution.md`)
+exige usar `graphify query` en vez de leer archivo por archivo al explorar
+código no familiar — no es un gate de `feature check`, es control de costo
+de tokens.
 
 ### Proyectos con otra estructura de carpetas (o monorepos)
 
@@ -355,7 +334,7 @@ sola sesión.
 
 ## 📋 Comandos
 
-Usa `node scripts/homero/homero.mjs <comando> --help` para ver los argumentos disponibles (`init`/`validate` van por `npx github:DanielRamosValenzuela/homero <comando> --help` — necesitan el source, no el archivo copiado).
+Usa `node scripts/homero/homero.mjs <comando> --help` para ver los argumentos disponibles (`init`/`validate` van por `npx`, ver [Instalar](#-instalar)).
 
 **Setup del repo** — una vez por proyecto
 
