@@ -4,7 +4,7 @@ Homero is not a devDependency: `homero init` copied its CLI directly into
 this repo at `scripts/homero/homero.mjs`. Every `homero <command>` below
 means `node scripts/homero/homero.mjs <command> --target . ...` — except
 `init`/`validate`, which need the Homero source template and run via
-`npx github:DanielRamosValenzuela/homero#v0.1.0 <command> ...`. There is no
+`npx github:DanielRamosValenzuela/homero <command> ...`. There is no
 `homero` binary on PATH.
 
 Before making non-trivial frontend changes, read:

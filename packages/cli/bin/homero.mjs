@@ -38,15 +38,20 @@ function hasFlag(name) {
 }
 
 function usage() {
-  console.log(`Homero is not a devDependency. \`init\`/\`validate\` run from the source
-(e.g. \`npx github:DanielRamosValenzuela/homero#v0.1.0 <command> ...\`); every
-other command below runs from the copy \`init\` places in the target repo:
-\`node scripts/homero/homero.mjs <command> ...\`.
+  console.log(`Install (run once, in your repo root):
+  npx github:DanielRamosValenzuela/homero
+
+That defaults to \`init --target . --client both\` and leaves the CLI copied
+at scripts/homero/homero.mjs — not a devDependency, nothing touches
+package.json or your lockfile. Every command below except init/validate then
+runs from that copy: \`node scripts/homero/homero.mjs <command> ...\`.
+\`init\`/\`validate\` need the Homero source template, so they keep running via
+\`npx github:DanielRamosValenzuela/homero <command> ...\`.
 
 Usage:
-  homero init --target <repo> --client <copilot|claude|both> [--project-name <name>] [--force]
+  homero init [--target <repo>] [--client <copilot|claude|both>] [--project-name <name>] [--force]
   homero discover --target <repo> [--defaults] [--force]
-  homero validate --target <repo> [--client <copilot|claude|both>]
+  homero validate [--target <repo>] [--client <copilot|claude|both>]
   homero generate form --target <repo> --name <FormName> --country <cl|pe|co> [--force]
   homero feature create --target <repo> --id <id> --name <name> --figma <url> --figma-version <version> --contract-mode <contract-first|contract-draft|no-backend-exception> --countries <cl|cl,pe,...> [--contract-source <source>] [--contract-exception <reason>]
   homero feature check --target <repo> --id <id>
@@ -149,7 +154,7 @@ function validateClient(client) {
 function assertSourceRepo(commandName) {
   if (!fs.existsSync(path.join(repoRoot, "templates"))) {
     fail(
-      `homero ${commandName} needs the Homero source templates, which aren't available from a locally copied scripts/homero/homero.mjs. Run it via \`npx github:DanielRamosValenzuela/homero#v0.1.0 ${commandName} ...\` instead.`
+      `homero ${commandName} needs the Homero source templates, which aren't available from a locally copied scripts/homero/homero.mjs. Run it via \`npx github:DanielRamosValenzuela/homero ${commandName} ...\` instead.`
     );
   }
 }
@@ -1847,12 +1852,12 @@ async function discover() {
 }
 
 function init() {
-  const targetArg = readArg("--target");
-  const client = readArg("--client") || "copilot";
+  const targetArg = readArg("--target") || ".";
+  const client = readArg("--client") || "both";
 
-  if (!targetArg || hasFlag("--help")) {
+  if (hasFlag("--help")) {
     usage();
-    process.exit(targetArg ? 0 : 1);
+    process.exit(0);
   }
 
   validateClient(client);
@@ -1911,7 +1916,7 @@ function init() {
   console.log("command from inside the target repo with:");
   console.log("  node scripts/homero/homero.mjs <command> --target . ...");
   console.log("`init` and `validate` still need the Homero source template and must");
-  console.log("run via `npx github:DanielRamosValenzuela/homero#v0.1.0 <command> ...`.");
+  console.log("run via `npx github:DanielRamosValenzuela/homero <command> ...`.");
   console.log("To update Homero later, re-run the same npx init command with --force.");
 }
 
@@ -1989,12 +1994,12 @@ function validateCliCopy(targetRoot, errors) {
 }
 
 function validate() {
-  const targetArg = readArg("--target");
-  const client = readArg("--client") || "copilot";
+  const targetArg = readArg("--target") || ".";
+  const client = readArg("--client") || "both";
 
-  if (!targetArg || hasFlag("--help")) {
+  if (hasFlag("--help")) {
     usage();
-    process.exit(targetArg ? 0 : 1);
+    process.exit(0);
   }
 
   validateClient(client);
@@ -2077,12 +2082,12 @@ function generate() {
 }
 
 async function main() {
-  if (!command || hasFlag("--help")) {
+  if (hasFlag("--help")) {
     usage();
-    process.exit(command ? 0 : 1);
+    process.exit(0);
   }
 
-  if (command === "init") {
+  if (!command || command === "init") {
     init();
     return;
   }

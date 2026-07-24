@@ -14,7 +14,7 @@ trabajo exactamente donde quedó — aunque cambie de sesión o de cliente
 
 ```mermaid
 flowchart TD
-    A["npx github:...homero init<br/>(no es devDependency)"] --> B["CLI copiado a<br/>scripts/homero/homero.mjs"]
+    A["npx github:...homero<br/>(un comando, no es devDependency)"] --> B["CLI copiado a<br/>scripts/homero/homero.mjs"]
     B --> C["homero discover"]
     C --> D["homero validate"]
     D --> E["homero feature create<br/>crea worktree + rama + feature.json"]
@@ -58,34 +58,43 @@ que todo agente Homero lee antes de trabajar:
 
 ## 📦 Instalar
 
-Homero **no es una dependencia del proyecto**: `init` copia su propio CLI
-directo al repo (`scripts/homero/homero.mjs`) y no toca `package.json` ni el
-lockfile. La primera vez se corre vía `npx` (necesita acceso a GitHub, no a
-un registry):
+Homero **no es una dependencia del proyecto**. Corré esto una vez, parado en
+la raíz de tu repo:
 
 ```powershell
-npx github:DanielRamosValenzuela/homero#v0.1.0 init --target . --client both --project-name mi-proyecto
+npx github:DanielRamosValenzuela/homero
 ```
 
-De acá en adelante, todo corre local — sin red, sin registry, sin `pnpm
-install` de por medio:
+Y listo — queda una carpeta `scripts/homero/` en tu proyecto con el CLI
+copiado adentro (`scripts/homero/homero.mjs`), más los docs/agentes de
+`--client both` (Copilot y Claude). No toca `package.json` ni el lockfile,
+no hay registry de por medio, nada que instalar globalmente.
+
+Ese comando sin flags es equivalente a
+`init --target . --client both --project-name <nombre-de-la-carpeta>`. Si
+querés elegir cliente o nombre, agregalos:
+
+```powershell
+npx github:DanielRamosValenzuela/homero init --client claude --project-name mi-proyecto
+```
+
+De acá en adelante, todo corre local — sin red, sin `npx` de por medio:
 
 ```powershell
 node scripts/homero/homero.mjs discover --target .
 ```
 
-`init` y `validate` son los únicos comandos que necesitan el source de
-Homero (por eso van por `npx`, no por el archivo copiado):
+`init` y `validate` son los únicos dos comandos que siguen yendo por `npx`
+(necesitan el source de Homero, no el archivo ya copiado):
 
 ```powershell
-npx github:DanielRamosValenzuela/homero#v0.1.0 validate --target . --client both
+npx github:DanielRamosValenzuela/homero validate --target . --client both
 ```
 
-`--client` es `copilot`, `claude`, o `both`. Para actualizar el CLI o los
-templates más adelante, repetí el mismo comando de `init` con `--force` —
-ojo, `--force` sobrescribe todo lo que Homero gestiona, incluido
-`homero.config.json`, así que corré `discover` de nuevo después si tus
-respuestas de configuración habían cambiado.
+Para actualizar el CLI o los templates más adelante, repetí el mismo `npx
+... init` con `--force` — ojo, `--force` sobrescribe todo lo que Homero
+gestiona, incluido `homero.config.json`, así que corré `discover` de nuevo
+después si tus respuestas de configuración habían cambiado.
 
 Si usás `copilot`, `homero-figma` necesita el servidor MCP de Figma registrado
 para el coding agent de Copilot a nivel de repo u organización (repo
@@ -126,7 +135,7 @@ Si el repo es un **monorepo**, instala Homero por app, apuntando `--target` a
 la carpeta de esa app (no a la raíz del workspace):
 
 ```powershell
-npx github:DanielRamosValenzuela/homero#v0.1.0 init --target apps/web --client both --project-name mi-app-web
+npx github:DanielRamosValenzuela/homero init --target apps/web --client both --project-name mi-app-web
 node apps/web/scripts/homero/homero.mjs discover --target apps/web
 ```
 
@@ -340,7 +349,7 @@ sola sesión.
 
 ## 📋 Comandos
 
-Usa `node scripts/homero/homero.mjs <comando> --help` para ver los argumentos disponibles (`init`/`validate` van por `npx github:DanielRamosValenzuela/homero#v0.1.0 <comando> --help` — necesitan el source, no el archivo copiado).
+Usa `node scripts/homero/homero.mjs <comando> --help` para ver los argumentos disponibles (`init`/`validate` van por `npx github:DanielRamosValenzuela/homero <comando> --help` — necesitan el source, no el archivo copiado).
 
 **Setup del repo** — una vez por proyecto
 
