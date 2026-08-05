@@ -2,6 +2,7 @@
   "schemaVersion": 1,
   "projectName": "__PROJECT_NAME__",
   "packageManager": "pnpm",
+  "lintGuardrail": "yes",
   "product": {
     "portfolio": "Falabella Seguros",
     "designSystem": "Tomaco",

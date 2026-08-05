@@ -47,6 +47,31 @@ Apply this rule whenever editing React UI components.
   Tomaco next bumps: if it ships per-component subpath exports or a
   `'use client'` banner, narrow or drop the rule.
 
+## Los estilos NO vienen del paquete npm
+
+`tomaco-components` publica **solo JS** (`files: ["dist"]`, `exports` con `"."`
+únicamente). No hay entrada Sass para consumidores y el `exports` map bloquea
+cualquier import profundo de CSS. Si intentás
+`import "tomaco-components/dist/tomaco-ui.css"` falla.
+
+La hoja de estilos se carga fuera de banda, con un `<link>` en el `<head>`:
+
+```html
+<link href="https://static.fif.tech/insurance-assets/seguros-ui/css/tomaco-ui.css" rel="stylesheet" />
+```
+
+Es lo que hace el Storybook oficial de Tomaco, que depende del paquete solo para
+los componentes React y no saca nada de CSS de `node_modules`.
+
+Consecuencias prácticas:
+
+- Si los componentes se ven sin estilo, el problema es el `<link>` faltante, no
+  el import de React. No lo "arregles" escribiendo CSS propio.
+- Las clases utilitarias y las CSS custom properties (`var(--neutral5)`) existen
+  solo si esa hoja está cargada.
+- Confirmá con el equipo cuál es la URL vigente antes de asumir esta — puede
+  estar versionada o servida desde otro entorno.
+
 ## Utility-class traps
 
 Tomaco's stylesheet loads its own helpers *after* a Bootstrap-like grid, so

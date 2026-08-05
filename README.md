@@ -410,7 +410,24 @@ Las dos skills del diagrama las instala Homero: con `--client claude` (o
 jerarquía, patrones); `tomaco-design-system` responde el *qué* exacto: qué
 componente, prop o token existe realmente en código.
 
-Para que esa segunda skill trabaje con el inventario real de tu instalación:
+Esa segunda skill lee un **inventario de componentes** generado desde tu
+instalación real: los 40 componentes de Tomaco con su descripción y sus
+keywords, agrupados por categoría. Sin él, el archivo dice *"NOT GENERATED
+YET"* y el agente vuelve a nombrar componentes de memoria — que es
+exactamente lo que la constitución prohíbe.
+
+**No hace falta que lo corras a mano.** `init` y `upgrade` lo generan solos si
+`node_modules` ya tiene el paquete, y `validate` te avisa cuando falta o quedó
+viejo:
+
+```text
+WARN  The tomaco-components catalog was generated against a different version
+      than the installed 2.0.0. Run `homero generate catalog --target .`
+```
+
+El caso típico donde sí lo corrés a mano es después de un `pnpm install`
+inicial (cuando instalaste Homero antes de tener dependencias) o tras un bump
+de Tomaco si no vas a correr `upgrade`:
 
 ```powershell
 node scripts/homero/homero.mjs generate catalog --target .
@@ -418,14 +435,15 @@ node scripts/homero/homero.mjs generate catalog --target .
 
 Lee el paquete declarado en `product.designSystemPackage` de
 `homero.config.json` (por defecto `tomaco-components`, o `--package` para
-pisarlo) desde `node_modules/`, extrae **solo los nombres exportados** — no los
-props, que inferidos mienten más de lo que ayudan — y escribe
-`.claude/skills/tomaco-design-system/references/component-api.md` con un header
-de procedencia (versión del paquete, versión de Homero, archivo de origen).
-Volvé a correrlo después de cada bump de versión de Tomaco: si no, el
-inventario queda viejo. Si el paquete no está instalado no rompe nada — avisa,
-sale con código 0, y la skill sigue funcionando leyendo el paquete y el repo
-directamente.
+pisarlo). Prefiere el bloque `tomaco` que el propio paquete publica en su
+`package.json` — categorías, descripciones y keywords, que es lo que permite
+buscar *por necesidad* y no por nombre — y lo cruza contra los exports reales
+del bundle para avisar si la metadata del paquete se separó de su build.
+Deliberadamente **no lista props**: inferidos mienten más de lo que ayudan.
+
+Si el paquete no está instalado no rompe nada: sale con código 0 y la skill
+sigue funcionando leyendo el paquete y el repo directamente. Y una vez
+generado, `upgrade` **no lo pisa** — lo reporta como `KEEP`.
 
 ## 📋 Comandos
 

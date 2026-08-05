@@ -2,15 +2,20 @@
 
 > **NOT GENERATED YET.** This is the placeholder Homero ships.
 >
-> Generate the real inventory with:
+> `homero init` and `homero upgrade` generate the real inventory automatically when
+> the design-system package is already in `node_modules`. Seeing this text means it
+> was not — most likely Homero was installed before the first `pnpm install`.
+>
+> Generate it now:
 >
 > ```
 > node scripts/homero/homero.mjs generate catalog --target .
 > ```
 >
-> It reads the installed design-system package recorded at
-> `product.designSystemPackage` in `homero.config.json` and replaces this file with
-> the actual export list plus a provenance header.
+> It reads the package recorded at `product.designSystemPackage` in
+> `homero.config.json` and replaces this file with the real component list —
+> categories, descriptions and keywords — plus a provenance header. Once generated,
+> `homero upgrade` never overwrites it.
 
 ## While this file is a placeholder
 

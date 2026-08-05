@@ -1,36 +1,17 @@
 # __PROJECT_NAME__ - Homero harness
 
-<!-- homero:managed — this file is maintained by `homero upgrade`. Delete this line to
-     take ownership of it; upgrade will then leave it alone and write its version to
-     AGENTS.md.homero-new for you to merge. -->
+<!-- homero:managed — maintained by `homero upgrade`. Delete this line to own this file. -->
 
-Homero's CLI lives at `scripts/homero/homero.mjs`, copied there by
-`homero init`. Every `homero <command>` mentioned in this repo's docs and
-agents means `node scripts/homero/homero.mjs <command> --target . ...` —
-except `init`/`upgrade`/`validate`, which need the Homero source templates and
-run via `npx github:DanielRamosValenzuela/homero <command> ...`.
+Homero's CLI lives at `scripts/homero/homero.mjs`, copied there by `homero init`.
+Every `homero <command>` in this repo means
+`node scripts/homero/homero.mjs <command> --target . ...` — except
+`init`/`upgrade`/`validate`, which need the Homero source templates and run via
+`npx github:DanielRamosValenzuela/homero <command> ...`.
 
-Read this repo in the following order before making non-trivial frontend changes:
-
-1. `docs/homero/business.md`
-2. `docs/homero/architecture.md`
-3. `docs/homero/contracts.md`
-4. `docs/homero/constitution.md`
-5. `docs/homero/ai-workflow.md`
-6. `docs/homero/agent-roles.md`
-7. `docs/homero/conventions.md`
-8. `docs/homero/verification.md`
-9. `docs/homero/playwright-cli.md`
-10. `docs/homero/knowledge-graph.md`
-
-## Working model
-
-- Homero is the process and frontend convention layer.
-- Product docs define the business and delivery scope.
-- Client adapters add tool-specific instructions without changing the core contract.
-- Client adapters may install custom agents/subagents for Homero workflow roles.
-- Skills are optional reusable procedures, not the foundation of the harness.
-- The local generator is the deterministic fast path for repeated file patterns.
+Before non-trivial frontend work, read `docs/homero/` in this order:
+`business.md`, `architecture.md`, `contracts.md`, `constitution.md`,
+`ai-workflow.md`, `agent-roles.md`, `conventions.md`, `verification.md`,
+`playwright-cli.md`, `knowledge-graph.md`.
 
 ## Non-negotiable rules
 
@@ -44,20 +25,24 @@ Read this repo in the following order before making non-trivial frontend changes
 8. Do not bypass `docs/homero/verification.md` when closing a task.
 9. Do not commit, push, create pull requests, merge, or modify Figma. Those actions belong to a human.
 10. Use `graphify query` instead of broad manual file-by-file reads when exploring unfamiliar or large parts of the codebase — see `docs/homero/knowledge-graph.md`.
+11. Never name a Tomaco component, prop, or token you have not confirmed against the generated inventory, the installed package, or a Code Connect mapping. Say you could not confirm it instead of guessing.
 
 ## Fast paths
 
 - New form scaffold:
   `node .\scripts\homero\new-form.mjs --name UserInfoForm --country cl`
-- Harness validation (needs the Homero source, not the local copy). Omit `--client`:
-  it is read from `homeroClient` in `homero.config.json`, and passing the wrong one
-  reports every file of the adapter this repo did not install as missing:
+- Harness validation. Omit `--client` — it is read from `homeroClient` in the config,
+  and the wrong one reports the other adapter's files as missing:
   `npx github:DanielRamosValenzuela/homero validate --target .`
-- Harness update (same reason it needs the source; preview first):
+- Harness update (preview first):
   `npx github:DanielRamosValenzuela/homero upgrade --target . --dry-run`
+- Refresh the Tomaco component inventory after a version bump:
+  `node scripts/homero/homero.mjs generate catalog --target .`
 - Feature gate:
   `node scripts/homero/homero.mjs feature check --target . --id FEAT-001`
 - Feature verification receipt:
   `node scripts/homero/homero.mjs verify --target . --id FEAT-001`
 - Knowledge graph refresh + query:
   `graphify src --update` then `graphify query "<question>"`
+- Wire the lint guardrail once per repo (`homero validate` warns while it is unwired):
+  import `homero.eslint.config.mjs` into `eslint.config.js` — snippet in its header.

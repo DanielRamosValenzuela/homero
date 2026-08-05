@@ -61,6 +61,40 @@ This is the question that prevents duplicate components, and it is asked by
   component and the source), **confirmed absent** (say which sources you checked), or
   **could not determine** (say what is missing). "Probably not" is not an answer.
 
+## Trampas verificadas en el código
+
+Estas no se deducen y no salen en el catálogo generado (que trae nombre,
+descripción y keywords, no props). Verificadas contra `tomaco-components@1.14.42`
+— confirmá contra tu versión antes de darlas por ciertas.
+
+**Nombres mal escritos que son los reales.** Escribir el correcto no funciona:
+
+| Lo que ES | Lo que escribirías por reflejo |
+| --- | --- |
+| `clossable` (Alert) | `closable` |
+| `terciary` (variante de Button) | `tertiary` |
+| `localMontlyPrice` (ProductCard*) | `localMonthlyPrice` |
+| `showRecomended`, `recomendedText` | `recommended…` (doble m) |
+| `accordeon` (Summary, SummaryDev) | `accordion` |
+
+**Componentes que no existen** con el nombre que esperarías: no hay `Modal` (es
+`Dialog`) ni `Link` (es `Button` con `appearance="link"`).
+
+**Otras**:
+
+- `Button` no acepta `children`. La etiqueta va en `text`.
+- `Input` tiene `labelText` con default `"Label Input"` — si no lo pasás, ese
+  texto queda visible en producción.
+- Las celdas de `Table` son objetos `{ cell: ReactNode }`, no nodos sueltos.
+- `Icon.iconName` es una clase CSS de máscara, no una ruta a un archivo.
+- `PaymentMethod` hardcodea `name="payment"` y `ProductCardSimple` hardcodea
+  `id="radio-input"`: dos instancias en la misma página colisionan.
+- `Accordion`, `QuantitySelector` y `Summary` son totalmente controlados y
+  reciben dispatchers de `setState`, no callbacks simples.
+- `Summary` y `SummaryDev` son duplicados idénticos byte a byte.
+- `ProductCardFull` **trunca en silencio**: título 20/39, subtítulo 25,
+  descuento 40, detalle 18, beneficios 30 caracteres.
+
 ## Handoff
 
 - Layout, spacing, hierarchy, responsive structure, pattern reuse →

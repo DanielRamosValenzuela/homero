@@ -280,6 +280,7 @@ function discoveryDefaults(targetRoot, config) {
     designSystem: "Tomaco",
     designSystemPackage: config.product?.designSystemPackage || "tomaco-components",
     stylingException: "none",
+    lintGuardrail: config.lintGuardrail || "yes",
     dataStack: "TanStack Query for reads and Server Actions for writes",
     stateStack: "Zustand only for cross-step client state",
     uiRoot: config.paths?.uiRoot || "src/ui",
@@ -317,6 +318,7 @@ const discoveryFields = [
   ["designSystem", "Design system"],
   ["designSystemPackage", "Design system npm package specifier, as imported in code (e.g. tomaco-components)"],
   ["stylingException", "Styling exception, if any"],
+  ["lintGuardrail", "Enforce the 'use client' lint guardrail? (yes/no) — yes makes `homero validate` warn until homero.eslint.config.mjs is imported by your eslint.config.js"],
   ["dataStack", "Data fetching and write stack"],
   ["stateStack", "Client state stack"],
   ["uiRoot", "UI/forms root path, relative to --target (default src/ui)"],
@@ -638,6 +640,7 @@ function discoveredConfig(config, answers) {
     ...config,
     projectName: answers.projectName,
     packageManager: config.packageManager || "pnpm",
+    lintGuardrail: answers.lintGuardrail,
     commands: {
       ...config.commands,
       lint: answers.lintCommand,
@@ -2075,6 +2078,11 @@ function init() {
   // scripts/homero/homero.mjs, and a printed next step that cannot run.
   stampConfig(targetRoot, client);
 
+  // Best-effort: if the repo already ran its package manager, the agent gets the real
+  // component inventory from minute one instead of the "NOT GENERATED YET" placeholder.
+  // Silent when the package is not there — installing before `pnpm install` is normal.
+  refreshCatalogQuietly(targetRoot);
+
   console.log("");
   console.log("Homero init complete");
   console.log(`Client:       ${client}`);
@@ -2198,6 +2206,8 @@ function validate() {
   validateConfig(targetRoot, errors);
   validateGenerator(targetRoot, errors);
   validateCliCopy(targetRoot, errors);
+  warnAboutCatalog(targetRoot);
+  warnAboutLintGuardrail(targetRoot);
 
   if (errors.length > 0) {
     console.error(`Homero validation failed for ${targetRoot}`);
@@ -2295,7 +2305,13 @@ function resolveDeclarationFile(packageRoot, packageManifest) {
   ].filter(entry => typeof entry === "string");
 
   for (const candidate of candidates) {
-    const candidatePath = path.join(packageRoot, candidate);
+    const candidatePath = path.resolve(packageRoot, candidate);
+
+    // An installed package's manifest is untrusted input: an absolute or "../" types
+    // field would otherwise make us read a file from outside the package.
+    if (!candidatePath.startsWith(packageRoot + path.sep)) {
+      continue;
+    }
 
     if (fs.existsSync(candidatePath) && fs.statSync(candidatePath).isFile()) {
       return candidatePath;
@@ -2316,6 +2332,17 @@ function generateCatalog() {
   const targetRoot = path.resolve(targetArg);
   const config = readConfig(targetRoot);
   const specifier = readArg("--package") || config.product?.designSystemPackage || "tomaco-components";
+
+  writeCatalog(targetRoot, specifier, { quiet: false });
+}
+
+// Callable from init/upgrade as well as from `generate catalog`. NEVER throws and never
+// exits non-zero: the catalog is an optimization, and a repo that has not run its package
+// manager yet must still install and upgrade cleanly.
+//
+// quiet mode is for the init/upgrade path, where a "not installed" notice would be noise
+// in a 40-line install log — the user has not even run pnpm install at that point.
+function writeCatalog(targetRoot, specifier, { quiet }) {
   const outputPath = path.join(
     targetRoot,
     ".claude",
@@ -2328,13 +2355,13 @@ function generateCatalog() {
   const packageRoot = path.join(targetRoot, "node_modules", ...specifier.split("/"));
   const packageManifestPath = path.join(packageRoot, "package.json");
 
-  // Exit 0, never fail. This command must be safe to run at any time, including in a
-  // repo that has not installed dependencies yet — breaking an install to report a
-  // missing optional catalog would be a far worse trade.
   if (!fs.existsSync(packageManifestPath)) {
-    console.log(`Skipped: ${specifier} is not installed under ${targetRoot}/node_modules.`);
-    console.log(`Install dependencies and re-run, or set product.designSystemPackage in homero.config.json if the specifier is wrong.`);
-    console.log(`The tomaco-design-system skill keeps working — it falls back to reading the package and repo directly.`);
+    if (!quiet) {
+      console.log(`Skipped: ${specifier} is not installed under ${targetRoot}/node_modules.`);
+      console.log(`Install dependencies and re-run, or set product.designSystemPackage in homero.config.json if the specifier is wrong.`);
+      console.log(`The tomaco-design-system skill keeps working — it falls back to reading the package and repo directly.`);
+    }
+
     return;
   }
 
@@ -2346,6 +2373,16 @@ function generateCatalog() {
   const exportNames = exports.values;
   const subpaths = Object.keys(packageManifest.exports || {}).filter(entry => entry.startsWith("."));
 
+  // tomaco-components hand-maintains a `tomaco` block in its own package.json: 6
+  // categories and 40 components with a Spanish description and a keywords array each.
+  // npm publishes package.json regardless of the `files` allowlist, so it is present in
+  // every install. It beats the .d.ts export list outright for the question the skill
+  // actually has to answer — "a field that masks a national ID" resolves to InputPlate
+  // through keywords, and cannot be resolved from a flat list of 40 names.
+  const described = packageManifest.tomaco?.components;
+  const categories = packageManifest.tomaco?.categories;
+  const hasDescribedCatalog = described !== null && typeof described === "object" && Object.keys(described).length > 0;
+
   const lines = [
     "# Tomaco component inventory",
     "",
@@ -2356,14 +2393,63 @@ function generateCatalog() {
     `| Package | \`${specifier}\` |`,
     `| Package version | \`${packageManifest.version || "unknown"}\` |`,
     `| Generated by | Homero ${homeroVersion} |`,
-    `| Source | \`${declarationPath ? path.relative(packageRoot, declarationPath) : "no type declarations found"}\` |`,
+    `| Source | \`${hasDescribedCatalog ? "package.json (tomaco block)" : declarationPath ? path.relative(packageRoot, declarationPath) : "no type declarations found"}\` |`,
     "",
     "**Staleness check:** if the installed package version differs from the one above,",
     "this file is stale — regenerate it before trusting any name below.",
-    "",
-    "## Exported components",
     ""
   ];
+
+  if (hasDescribedCatalog) {
+    // Cross-check the curated block against what the bundle actually exports. A name in
+    // one and not the other means the package's own metadata drifted from its build —
+    // worth surfacing rather than silently trusting either side.
+    const describedNames = Object.keys(described);
+    const onlyDescribed = describedNames.filter(name => !exportNames.includes(name));
+    const onlyExported = exportNames.filter(name => !describedNames.includes(name));
+
+    if (exportNames.length > 0 && (onlyDescribed.length > 0 || onlyExported.length > 0)) {
+      lines.push(
+        "> **Drift between the package's own catalog and its build.**",
+        onlyDescribed.length > 0 ? `> Described but not exported: ${onlyDescribed.map(n => `\`${n}\``).join(", ")}` : "",
+        onlyExported.length > 0 ? `> Exported but not described: ${onlyExported.map(n => `\`${n}\``).join(", ")}` : "",
+        "> Trust the exported side for what you can import.",
+        ""
+      );
+    }
+
+    lines.push("Search by need, not by category — the keywords are what make that work.", "");
+
+    const byCategory =
+      categories && typeof categories === "object"
+        ? categories
+        : { Components: describedNames };
+
+    for (const [category, names] of Object.entries(byCategory)) {
+      if (!Array.isArray(names) || names.length === 0) {
+        continue;
+      }
+
+      lines.push(`### ${category}`, "");
+
+      for (const name of names) {
+        const entry = described[name];
+        const keywords = Array.isArray(entry?.keywords) ? entry.keywords.join(", ") : "";
+        lines.push(`- **\`${name}\`** — ${entry?.description || "(no description)"}`);
+
+        if (keywords) {
+          lines.push(`  <br>_${keywords}_`);
+        }
+      }
+
+      lines.push("");
+    }
+  }
+
+  lines.push(
+    hasDescribedCatalog ? "## All exported component names" : "## Exported components",
+    ""
+  );
 
   if (exportNames.length > 0) {
     lines.push(`${exportNames.length} value exports detected.`, "");
@@ -2415,8 +2501,120 @@ function generateCatalog() {
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
   fs.writeFileSync(outputPath, lines.join("\n"), "utf8");
 
+  const componentCount = hasDescribedCatalog ? Object.keys(described).length : exportNames.length;
+
+  if (quiet) {
+    console.log(`CATALOG ${specifier}@${packageManifest.version || "unknown"} — ${componentCount} components`);
+    return;
+  }
+
   console.log(`WRITE ${outputPath}`);
-  console.log(`${specifier}@${packageManifest.version || "unknown"} — ${exportNames.length} exports`);
+  console.log(`${specifier}@${packageManifest.version || "unknown"} — ${componentCount} components`);
+}
+
+// init/upgrade entry point. Swallows everything: a malformed design-system manifest or an
+// unreadable node_modules must never take down an install or an upgrade.
+function refreshCatalogQuietly(targetRoot) {
+  try {
+    const specifier = readConfig(targetRoot).product?.designSystemPackage || "tomaco-components";
+    writeCatalog(targetRoot, specifier, { quiet: true });
+  } catch {
+    // Intentionally silent — `homero generate catalog` reports properly when run directly.
+  }
+}
+
+// A WARNING, never an error. A repo can legitimately have no node_modules (fresh clone,
+// CI lint job), and failing validation there would punish the wrong thing. But a catalog
+// recorded against a version the repo no longer installs is actively misleading — the
+// agent reads it as current and names components that may have moved.
+function warnAboutCatalog(targetRoot) {
+  const catalogPath = path.join(
+    targetRoot,
+    ".claude",
+    "skills",
+    "tomaco-design-system",
+    "references",
+    "component-api.md"
+  );
+
+  if (!fs.existsSync(catalogPath)) {
+    return;
+  }
+
+  const catalog = fs.readFileSync(catalogPath, "utf8");
+  const config = readConfig(targetRoot);
+  const specifier = config.product?.designSystemPackage || "tomaco-components";
+  const packageManifestPath = path.join(targetRoot, "node_modules", ...specifier.split("/"), "package.json");
+
+  if (!catalog.includes(generatedMarker)) {
+    if (fs.existsSync(packageManifestPath)) {
+      console.warn(
+        `WARN  The ${specifier} catalog was never generated, but the package is installed. Run \`homero generate catalog --target .\` so agents stop falling back to memory.`
+      );
+    }
+
+    return;
+  }
+
+  if (!fs.existsSync(packageManifestPath)) {
+    return;
+  }
+
+  let installedVersion;
+
+  try {
+    installedVersion = JSON.parse(fs.readFileSync(packageManifestPath, "utf8")).version;
+  } catch {
+    return;
+  }
+
+  if (installedVersion && !catalog.includes(`\`${installedVersion}\``)) {
+    console.warn(
+      `WARN  The ${specifier} catalog was generated against a different version than the installed ${installedVersion}. Run \`homero generate catalog --target .\` to refresh it.`
+    );
+  }
+}
+
+// The lint fragment is inert until the project's own flat config imports it, and nothing
+// at runtime can tell Homero whether that happened — so this check reads the project's
+// eslint config directly. A warning, not an error: opting out is legitimate, and
+// `lintGuardrail: "no"` in homero.config.json silences it permanently.
+function warnAboutLintGuardrail(targetRoot) {
+  const config = readConfig(targetRoot);
+
+  if (config.lintGuardrail === "no") {
+    return;
+  }
+
+  if (!fs.existsSync(path.join(targetRoot, "homero.eslint.config.mjs"))) {
+    return;
+  }
+
+  const eslintConfigNames = [
+    "eslint.config.js",
+    "eslint.config.mjs",
+    "eslint.config.cjs",
+    "eslint.config.ts",
+    "eslint.config.mts"
+  ];
+  const presentConfigs = eslintConfigNames.filter(name => fs.existsSync(path.join(targetRoot, name)));
+
+  if (presentConfigs.length === 0) {
+    console.warn(
+      `WARN  homero.eslint.config.mjs ships the 'use client' guardrail but this repo has no flat ESLint config to import it from. Set lintGuardrail to "no" in homero.config.json to silence this.`
+    );
+    return;
+  }
+
+  const wired = presentConfigs.some(name =>
+    fs.readFileSync(path.join(targetRoot, name), "utf8").includes("homero.eslint.config")
+  );
+
+  if (!wired) {
+    console.warn(
+      `WARN  homero.eslint.config.mjs is installed but ${presentConfigs.join(" / ")} does not import it, so the 'use client' guardrail is inert. Add it (snippet in the file's header), or set lintGuardrail to "no" in homero.config.json.`
+    );
+  }
 }
 
 function generate() {
@@ -2710,6 +2908,13 @@ function upgrade() {
         fs.renameSync(temporaryPath, cliDestinationPath);
       }
     }
+  }
+
+  // Refresh the catalog against whatever version is installed today. Safe to do
+  // unconditionally: it regenerates from node_modules, so it cannot stale-ify anything,
+  // and it is exactly what a post-Tomaco-bump upgrade should pick up.
+  if (!dryRun) {
+    refreshCatalogQuietly(targetRoot);
   }
 
   console.log("");
