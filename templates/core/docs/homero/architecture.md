@@ -72,9 +72,10 @@
 
 - Any file that imports from the design system package needs an explicit
   client boundary directive (e.g. `'use client'`), even if the file itself
-  uses no hooks, when the package's bundle calls browser-only APIs like
-  `createContext` without declaring one itself — this silently breaks
-  Server Component builds otherwise
+  uses no hooks — the package ships one bundle, built from one barrel, that
+  imports React hooks and runs module-scope side effects, and it exposes no
+  subpath exports, so no export of it is server-safe. Type-only imports are
+  exempt. See `.claude/rules/tomaco.md` for the full reasoning
 - Do not reintroduce an ambiguous or duplicate name for a concept that
   already has a resolved name in the repo (e.g. a country/form resolver) —
   check existing naming before adding a parallel abstraction

@@ -1,0 +1,17 @@
+# Anchored patterns only.
+#
+# `package.json` now has a `files` allowlist, so this file no longer decides what
+# ships in the npx/npm tarball. Keep the patterns anchored anyway: an unanchored
+# pattern like `.claude/` would also match `templates/claude/.claude/**` and quietly
+# drop the entire Claude adapter from the install.
+
+/node_modules/
+/.playwright/
+/.homero-worktrees/
+
+# Local AI-client state (never part of the harness Homero installs)
+/.claude/settings.local.json
+
+# OS / editor noise
+.DS_Store
+*.log

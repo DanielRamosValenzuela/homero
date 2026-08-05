@@ -50,10 +50,44 @@ function runGit(args) {
   }
 }
 
+// --- Version invariant ---
+// Everything Homero reports about versions (the stamp in homero.config.json, `homero
+// version`, the drift warning, the upgrade banner) comes from a constant in the CLI, not
+// from package.json — a vendored scripts/homero/homero.mjs has no package.json to read.
+// If the constant and the manifest drift, every one of those readings is a lie.
+const homeroVersionMatch = fs.readFileSync(sourceCliPath, "utf8").match(/^const homeroVersion = "([^"]+)";$/m);
+
+if (!homeroVersionMatch) {
+  console.error(`Expected a \`const homeroVersion = "..."\` declaration in ${sourceCliPath}`);
+  process.exit(1);
+}
+
+const homeroVersionConstant = homeroVersionMatch[1];
+const manifestVersion = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.json"), "utf8")).version;
+
+if (homeroVersionConstant !== manifestVersion) {
+  console.error(`homeroVersion constant is ${homeroVersionConstant} but package.json version is ${manifestVersion} — keep them in lockstep`);
+  process.exit(1);
+}
+
 run(["init", "--target", targetRoot, "--client", "both", "--project-name", "homero-self-test"], { cliPath: sourceCliPath });
 
 if (!fs.existsSync(copiedCliPath)) {
   console.error(`Expected homero init to copy the CLI itself into the target repo: ${copiedCliPath}`);
+  process.exit(1);
+}
+
+// The vendored copy is the CLI users actually run. If `init` ever rewrote it on the way in,
+// every standalone assertion below would be exercising a different program than the shipped one.
+if (Buffer.compare(fs.readFileSync(copiedCliPath), fs.readFileSync(sourceCliPath)) !== 0) {
+  console.error(`Expected ${copiedCliPath} to be byte-identical to ${sourceCliPath}`);
+  process.exit(1);
+}
+
+const stampedConfig = JSON.parse(fs.readFileSync(path.join(targetRoot, "homero.config.json"), "utf8"));
+
+if (stampedConfig.homeroVersion !== homeroVersionConstant || stampedConfig.homeroClient !== "both") {
+  console.error(`Expected init to stamp homeroVersion=${homeroVersionConstant} homeroClient=both, got homeroVersion=${stampedConfig.homeroVersion} homeroClient=${stampedConfig.homeroClient}`);
   process.exit(1);
 }
 
@@ -377,5 +411,93 @@ if (state.verifyAttempts !== 3) {
   console.error(`Expected a 4th verify call to stay blocked without incrementing further, got verifyAttempts=${state.verifyAttempts}`);
   process.exit(1);
 }
+
+// --- Single-adapter install: recorded client, upgrade, catalog ---
+// A second target repo, installed with one adapter, because the behavior these assertions
+// cover only differs from the "both" default on a single-adapter install.
+const singleClientRoot = fs.mkdtempSync(path.join(os.tmpdir(), "homero-self-test-claude-"));
+const singleClientConfigPath = path.join(singleClientRoot, "homero.config.json");
+
+run(["init", "--target", singleClientRoot, "--client", "claude", "--project-name", "homero-self-test-claude"], { cliPath: sourceCliPath });
+
+const singleClientConfig = JSON.parse(fs.readFileSync(singleClientConfigPath, "utf8"));
+
+if (singleClientConfig.homeroVersion !== homeroVersionConstant || singleClientConfig.homeroClient !== "claude") {
+  console.error(`Expected init to stamp homeroVersion=${homeroVersionConstant} homeroClient=claude, got homeroVersion=${singleClientConfig.homeroVersion} homeroClient=${singleClientConfig.homeroClient}`);
+  process.exit(1);
+}
+
+// No --client flag on purpose: validate must fall back to the client recorded at install
+// time. Defaulting to "both" here failed every claude-only install with a full set of
+// bogus "missing .github/**" errors for the adapter it deliberately never installed.
+run(["validate", "--target", singleClientRoot], { cliPath: sourceCliPath });
+
+function snapshotTree(root) {
+  const files = {};
+
+  function walk(directory) {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const entryPath = path.join(directory, entry.name);
+
+      if (entry.isDirectory()) {
+        walk(entryPath);
+        continue;
+      }
+
+      files[path.relative(root, entryPath)] = fs.readFileSync(entryPath).toString("base64");
+    }
+  }
+
+  walk(root);
+  return JSON.stringify(files, Object.keys(files).sort());
+}
+
+const treeBeforeDryRun = snapshotTree(singleClientRoot);
+run(["upgrade", "--target", singleClientRoot, "--dry-run"], { cliPath: sourceCliPath });
+
+if (snapshotTree(singleClientRoot) !== treeBeforeDryRun) {
+  console.error("Expected `homero upgrade --dry-run` to write nothing at all");
+  process.exit(1);
+}
+
+// The whole promise of upgrade: refresh Homero's own files, touch nothing the team changed.
+// --force because this target is a plain directory, not a git checkout — the clean-tree
+// guard is a separate concern from the file logic under test here.
+const editedConfig = JSON.parse(fs.readFileSync(singleClientConfigPath, "utf8"));
+editedConfig.commands.lint = "pnpm run lint:custom";
+editedConfig.paths.uiRoot = "app/components";
+fs.writeFileSync(singleClientConfigPath, `${JSON.stringify(editedConfig, null, 2)}\n`, "utf8");
+
+const architecturePath = path.join(singleClientRoot, "docs", "homero", "architecture.md");
+const handWrittenSection = "## Section the team added by hand";
+fs.appendFileSync(architecturePath, `\n${handWrittenSection}\n`, "utf8");
+
+run(["upgrade", "--target", singleClientRoot, "--force"], { cliPath: sourceCliPath });
+
+const upgradedConfig = JSON.parse(fs.readFileSync(singleClientConfigPath, "utf8"));
+
+if (upgradedConfig.commands.lint !== "pnpm run lint:custom") {
+  console.error(`Expected upgrade to preserve commands.lint, got ${upgradedConfig.commands.lint}`);
+  process.exit(1);
+}
+
+if (upgradedConfig.paths.uiRoot !== "app/components") {
+  console.error(`Expected upgrade to preserve paths.uiRoot, got ${upgradedConfig.paths.uiRoot}`);
+  process.exit(1);
+}
+
+if (!fs.readFileSync(architecturePath, "utf8").includes(handWrittenSection)) {
+  console.error("Expected upgrade to leave the hand-edited docs/homero/architecture.md in place");
+  process.exit(1);
+}
+
+if (!fs.existsSync(`${architecturePath}.homero-new`)) {
+  console.error("Expected upgrade to write docs/homero/architecture.md.homero-new next to the drifted file");
+  process.exit(1);
+}
+
+// No node_modules in this target at all: `generate catalog` must say so and exit 0. Failing
+// here would break an install over a catalog that is optional by design.
+run(["generate", "catalog", "--target", singleClientRoot], { cliPath: path.join(singleClientRoot, "scripts", "homero", "homero.mjs") });
 
 console.log(`Homero self-test OK: ${targetRoot}`);

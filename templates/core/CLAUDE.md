@@ -1,3 +1,6 @@
+<!-- homero:managed — maintained by `homero upgrade`. Delete this line to take ownership;
+     upgrade will then leave it alone and write its version to CLAUDE.md.homero-new. -->
+
 Read `AGENTS.md` first.
 
 Then use the local Homero contract:

@@ -1,11 +1,16 @@
 {
   "name": "homero",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "bin": {
     "homero": "./packages/cli/bin/homero.mjs"
   },
+  "files": [
+    "packages/",
+    "templates/",
+    "README.md"
+  ],
   "scripts": {
     "homero": "node ./packages/cli/bin/homero.mjs",
     "bootstrap": "node ./scripts/bootstrap-harness.mjs",

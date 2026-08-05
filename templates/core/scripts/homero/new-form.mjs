@@ -80,7 +80,9 @@ export function ${hookName}() {
   },
   {
     path: path.join(formDir, "index.tsx"),
-    content: `import { Controller } from "react-hook-form";
+    content: `"use client";
+
+import { Controller } from "react-hook-form";
 import { Button, Input } from "tomaco-components";
 import { ${hookName} } from "./${hookName}";
 
@@ -99,9 +101,11 @@ export default function ${name}() {
       <Controller
         control={control}
         name="sampleField"
-        render={({ field }) => <Input {...field} />}
+        // Input defaults labelText to "Label Input" — always pass a real one.
+        render={({ field }) => <Input {...field} labelText="Campo" />}
       />
-      <Button type="submit">Continuar</Button>
+      {/* Button takes its label from \`text\`; it accepts no children. */}
+      <Button type="submit" text="Continuar" />
     </form>
   );
 }
@@ -115,7 +119,7 @@ import ${name} from "${testImportSpecifier}";
 describe("${name}", () => {
   it("renders the form shell", () => {
     render(<${name} />);
-    expect(screen.getByRole("button")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continuar" })).toBeInTheDocument();
   });
 });
 `

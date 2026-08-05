@@ -1,10 +1,14 @@
 # __PROJECT_NAME__ - Homero harness
 
+<!-- homero:managed — this file is maintained by `homero upgrade`. Delete this line to
+     take ownership of it; upgrade will then leave it alone and write its version to
+     AGENTS.md.homero-new for you to merge. -->
+
 Homero's CLI lives at `scripts/homero/homero.mjs`, copied there by
 `homero init`. Every `homero <command>` mentioned in this repo's docs and
 agents means `node scripts/homero/homero.mjs <command> --target . ...` —
-except `init`/`validate`, which need the Homero source template and run via
-`npx github:DanielRamosValenzuela/homero <command> ...`.
+except `init`/`upgrade`/`validate`, which need the Homero source templates and
+run via `npx github:DanielRamosValenzuela/homero <command> ...`.
 
 Read this repo in the following order before making non-trivial frontend changes:
 
@@ -45,8 +49,12 @@ Read this repo in the following order before making non-trivial frontend changes
 
 - New form scaffold:
   `node .\scripts\homero\new-form.mjs --name UserInfoForm --country cl`
-- Harness validation (needs the Homero source, not the local copy):
-  `npx github:DanielRamosValenzuela/homero validate --target . --client copilot`
+- Harness validation (needs the Homero source, not the local copy). Omit `--client`:
+  it is read from `homeroClient` in `homero.config.json`, and passing the wrong one
+  reports every file of the adapter this repo did not install as missing:
+  `npx github:DanielRamosValenzuela/homero validate --target .`
+- Harness update (same reason it needs the source; preview first):
+  `npx github:DanielRamosValenzuela/homero upgrade --target . --dry-run`
 - Feature gate:
   `node scripts/homero/homero.mjs feature check --target . --id FEAT-001`
 - Feature verification receipt:

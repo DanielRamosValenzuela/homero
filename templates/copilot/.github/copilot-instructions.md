@@ -1,9 +1,13 @@
 # Homero Copilot Instructions
 
+<!-- homero:managed — maintained by `homero upgrade`. Delete this line to take ownership;
+     upgrade will then leave it alone and write its version to
+     copilot-instructions.md.homero-new for you to merge. -->
+
 Homero's CLI lives at `scripts/homero/homero.mjs`, copied there by
 `homero init`. Every `homero <command>` below means
 `node scripts/homero/homero.mjs <command> --target . ...` — except
-`init`/`validate`, which need the Homero source template and run via
+`init`/`upgrade`/`validate`, which need the Homero source templates and run via
 `npx github:DanielRamosValenzuela/homero <command> ...`.
 
 Before making non-trivial frontend changes, read:

@@ -18,8 +18,9 @@ applyTo: "**/*.{ts,tsx,css,scss,md}"
   data), keep one implementation under a `global` path instead of forking it
   per country.
 - Any file importing design-system components needs an explicit client
-  boundary directive (e.g. `'use client'`), even without hooks, if the
-  package calls browser-only APIs like `createContext` internally.
+  boundary directive (e.g. `'use client'`), even without hooks: the package
+  ships a single bundle with no subpath exports, so every import pulls React
+  hooks and module-scope side effects into the graph. `import type` is exempt.
 - Mirror test files under the project's test root instead of colocating them,
   unless the repo already colocates tests before Homero was installed.
 - Prefer readable, testable component boundaries over broad refactors.

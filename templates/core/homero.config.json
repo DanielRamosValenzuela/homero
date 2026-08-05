@@ -4,7 +4,8 @@
   "packageManager": "pnpm",
   "product": {
     "portfolio": "Falabella Seguros",
-    "designSystem": "Tomaco"
+    "designSystem": "Tomaco",
+    "designSystemPackage": "tomaco-components"
   },
   "commands": {
     "lint": "pnpm lint",

@@ -9,8 +9,13 @@ The Figma file explicitly describes color usage in terms of hierarchy and permis
 ### Neutral palette usage
 
 - `Neutral 0` `#FFFFFF`: white base.
-- `Neutral 5` `#F4F7F9`: very light backgrounds.
-- `Neutral 10` `#E2E9EE`: decorative background emphasis and strokes.
+- `Neutral 5` `#F5F7F9`: very light backgrounds.
+- `Neutral 10` `#E4E9EE`: decorative background emphasis and strokes.
+
+> Los hex de este documento son derivados de Figma. La fuente autoritativa en
+> código son las CSS custom properties que Tomaco emite en `:root` — usa
+> `var(--neutral5)` antes que pegar un literal.
+
 - `Neutral 20` `#C3CDD8`: stronger decorative background support.
 - `Neutral 80` `#333537`: primary text on white backgrounds.
 - `Neutral 60` `#5E6267`: secondary text on white backgrounds.

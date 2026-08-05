@@ -75,11 +75,64 @@ De acá en adelante todo corre local, sin `npx`:
 node scripts/homero/homero.mjs discover --target .
 ```
 
-`init` y `validate` son los únicos comandos que siguen yendo por `npx`
-(necesitan el source de Homero, no el archivo ya copiado). Para actualizar
-el CLI o los templates, repetí el mismo `npx ... init` con `--force` — ojo,
-pisa todo lo que Homero gestiona, incluido `homero.config.json`, así que
-corré `discover` de nuevo después.
+`discover` te pregunta por el stack y el contexto de negocio, y con eso escribe
+`homero.config.json` más los cinco docs de `docs/homero/`. La primera vez
+reemplaza los templates que dejó `init`; de ahí en adelante los respeta y te
+avisa con `SKIP ... (already discovered)`, porque puede que los hayas editado a
+mano. Usá `--force` cuando quieras regenerarlos desde tus respuestas nuevas.
+
+`init`, `upgrade` y `validate` son los únicos comandos que siguen yendo por
+`npx` (necesitan el source de Homero, no el archivo ya copiado); todo el
+resto corre desde la copia vendorizada en `scripts/homero/homero.mjs`.
+
+Para actualizar una instalación existente el comando es `upgrade`, no
+`init --force`:
+
+```powershell
+npx github:DanielRamosValenzuela/homero upgrade --target . --dry-run
+npx github:DanielRamosValenzuela/homero upgrade --target .
+```
+
+`upgrade` refresca lo que Homero gestiona (CLI vendorizado, agentes, skills,
+reglas, comandos, templates) y:
+
+- **Nunca toca los cinco docs que escribe `discover`** (`business.md`,
+  `architecture.md`, `conventions.md`, `contracts.md`, `constitution.md`). Si
+  alguno se separó del template, deja el nuevo al lado como
+  `<archivo>.homero-new` para que compares y mergees a mano.
+- **Nunca pisa un `AGENTS.md`, `CLAUDE.md` o `.github/copilot-instructions.md`
+  que hayas escrito vos.** Los que instala Homero llevan un comentario
+  `homero:managed` en las primeras líneas; si el archivo no lo tiene, lo trata
+  como tuyo y deja un `.homero-new`. Borrar esa línea es la forma explícita de
+  tomar posesión del archivo.
+- **Respeta el catálogo generado.** Una vez que corriste `generate catalog`,
+  `component-api.md` queda marcado como generado y `upgrade` lo deja intacto
+  (lo reporta como `KEEP`) en vez de revertirlo al placeholder.
+- **Mergea `homero.config.json` en profundidad**: tus valores sobreviven, los
+  arrays quedan tal como los dejaste, y las claves nuevas de la versión se
+  agregan solas.
+- **Exige el árbol Git limpio**, así que la corrida es revertible: `git
+  checkout .` para los archivos modificados y `git clean -fd` para los que
+  agregó (los nuevos son untracked y sobreviven a un checkout). `--force` se
+  salta el chequeo.
+- Con `--dry-run` te muestra exactamente qué tocaría sin escribir nada.
+
+El `--client` sale de `homeroClient` en `homero.config.json`. Los repos
+instalados con 0.1.x no lo tienen registrado, y ahí `upgrade` **se niega a
+correr** en vez de adivinar — asumir `both` instalaría un adapter entero como
+archivos nuevos, que al ser untracked no los borra un `git checkout .`. Pasale
+`--client copilot|claude|both` una vez y queda registrado para siempre.
+
+`init --force` sigue existiendo, pero es la reinstalación bruta: pisa todo lo
+que Homero gestiona, incluido `homero.config.json`, y te obliga a correr
+`discover` de nuevo. Usalo solo si querés volver a cero.
+
+Para ver en qué versión estás — la del source, la de `homero.config.json` y la
+del CLI vendorizado, con aviso si hay drift entre ellas:
+
+```powershell
+npx github:DanielRamosValenzuela/homero version --target .
+```
 
 Copiá `mcp.example.json` a `.mcp.json` y completá tus servidores MCP reales
 (Figma y los que sumes) — `.mcp.json` queda gitignoreado porque puede
@@ -350,15 +403,41 @@ archivos de producto. Si tu cliente de IA no soporta agentes personalizados,
 `docs/homero/agent-roles.md` define los mismos roles para seguirlos en una
 sola sesión.
 
+Las dos skills del diagrama las instala Homero: con `--client claude` (o
+`both`) quedan en `.claude/skills/seguros-falabella-ui-ux/` y
+`.claude/skills/tomaco-design-system/` — no hay que escribirlas a mano.
+`seguros-falabella-ui-ux` responde el *por qué* y el *dónde* (layout,
+jerarquía, patrones); `tomaco-design-system` responde el *qué* exacto: qué
+componente, prop o token existe realmente en código.
+
+Para que esa segunda skill trabaje con el inventario real de tu instalación:
+
+```powershell
+node scripts/homero/homero.mjs generate catalog --target .
+```
+
+Lee el paquete declarado en `product.designSystemPackage` de
+`homero.config.json` (por defecto `tomaco-components`, o `--package` para
+pisarlo) desde `node_modules/`, extrae **solo los nombres exportados** — no los
+props, que inferidos mienten más de lo que ayudan — y escribe
+`.claude/skills/tomaco-design-system/references/component-api.md` con un header
+de procedencia (versión del paquete, versión de Homero, archivo de origen).
+Volvé a correrlo después de cada bump de versión de Tomaco: si no, el
+inventario queda viejo. Si el paquete no está instalado no rompe nada — avisa,
+sale con código 0, y la skill sigue funcionando leyendo el paquete y el repo
+directamente.
+
 ## 📋 Comandos
 
-Usa `node scripts/homero/homero.mjs <comando> --help` para ver los argumentos disponibles (`init`/`validate` van por `npx`, ver [Instalar](#-instalar)).
+Usa `node scripts/homero/homero.mjs <comando> --help` para ver los argumentos disponibles (`init`/`upgrade`/`validate` van por `npx`, ver [Instalar](#-instalar)).
 
 **Setup del repo** — una vez por proyecto
 
 | Comando | Uso |
 | --- | --- |
 | `homero init` | Instala Homero y los adapters de IA. |
+| `homero upgrade` | Actualiza una instalación existente sin pisar los docs de `discover` ni tus valores de config (`--dry-run` para previsualizar). |
+| `homero version` | Muestra la versión del source, la de `homero.config.json` y la del CLI vendorizado, y avisa si hay drift. |
 | `homero discover` | Registra el contexto del proyecto. |
 | `homero validate` | Valida la instalación de Homero. |
 | `homero setup playwright` | Instala Playwright localmente. |
@@ -387,6 +466,7 @@ Usa `node scripts/homero/homero.mjs <comando> --help` para ver los argumentos di
 | Comando | Uso |
 | --- | --- |
 | `homero generate form` | Genera un formulario repetitivo por país. |
+| `homero generate catalog` | Genera el inventario de componentes de Tomaco que lee la skill `tomaco-design-system`. |
 
 ## 🧪 Desarrollo local
 
