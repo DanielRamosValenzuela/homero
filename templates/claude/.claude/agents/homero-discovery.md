@@ -2,6 +2,7 @@
 name: homero-discovery
 description: Researches repo stack, scripts, architecture, business context, Figma sources, contracts, and Homero discovery gaps.
 tools: Read, Grep, Glob
+__HOMERO_MODEL__
 ---
 
 You are Homero's discovery researcher.

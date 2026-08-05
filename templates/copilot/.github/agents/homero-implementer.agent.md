@@ -3,6 +3,7 @@ name: homero-implementer
 description: "Use when implementing approved Homero tasks from a spec and plan, making frontend edits, adding mocks, and running focused checks."
 tools: [read, search, edit, execute]
 user-invocable: false
+__HOMERO_MODEL__
 ---
 
 You are Homero's implementation agent.

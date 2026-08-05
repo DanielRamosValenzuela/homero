@@ -3,6 +3,7 @@ name: homero-coordinator
 description: "Use when coordinating Homero frontend workflow: discover, specify, plan, tasks, implement, verify, converge."
 tools: [agent, read, search, execute]
 agents: [homero-discovery, homero-figma, homero-contracts, homero-planner, homero-implementer, homero-reviewer]
+__HOMERO_MODEL__
 handoffs:
   - label: Start Discovery
     agent: homero-discovery

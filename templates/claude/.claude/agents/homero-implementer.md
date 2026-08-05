@@ -1,7 +1,8 @@
 ---
 name: homero-implementer
 description: Implements approved Homero tasks from a spec and plan, makes frontend edits, adds mocks, and runs focused checks.
-tools: Read, Grep, Glob, Bash, Edit, Skill
+tools: Read, Grep, Glob, Bash, Edit, Write, Skill
+__HOMERO_MODEL__
 ---
 
 You are Homero's implementation agent.

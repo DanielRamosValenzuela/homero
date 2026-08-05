@@ -73,6 +73,26 @@
       "homero-implementer",
       "homero-reviewer"
     ],
-    "modelPolicy": "use client default unless the team records a specific model"
+    "models": {
+      "_comment": "Per-agent model pins. An empty string emits no model key at all, which is the only value that honors the user's own model picker. claude: only Claude models resolve — inherit|opus|sonnet|haiku|fable or a claude-* id; a GPT name will NOT resolve there. copilot: the friendly name exactly as it appears in the Copilot model picker (any vendor). Defaults use GPT-5.6 — Sol for the two agents whose mistakes nobody downstream can catch, Terra for the rest, Luna for the mechanical one. NOTE: Sol needs Copilot Pro+/Max/Business/Enterprise, and on Business/Enterprise an admin must enable the GPT-5.6 model policy (off by default) — otherwise the pin degrades silently to the picker default. The cloud coding agent may ignore the key entirely.",
+      "claude": {
+        "homero-coordinator": "inherit",
+        "homero-discovery": "sonnet",
+        "homero-figma": "opus",
+        "homero-contracts": "haiku",
+        "homero-planner": "sonnet",
+        "homero-implementer": "sonnet",
+        "homero-reviewer": "opus"
+      },
+      "copilot": {
+        "homero-coordinator": "",
+        "homero-discovery": "GPT-5.6 Terra",
+        "homero-figma": "GPT-5.6 Sol",
+        "homero-contracts": "GPT-5.6 Luna",
+        "homero-planner": "GPT-5.6 Terra",
+        "homero-implementer": "GPT-5.6 Terra",
+        "homero-reviewer": "GPT-5.6 Sol"
+      }
+    }
   }
 }

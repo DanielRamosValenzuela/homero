@@ -3,6 +3,7 @@ name: homero-reviewer
 description: "Use when reviewing frontend implementation against Homero spec, plan, tasks, Figma intent, backend contracts, mocks, and verification rules."
 tools: [read, search]
 user-invocable: false
+__HOMERO_MODEL__
 ---
 
 You are Homero's verification reviewer.

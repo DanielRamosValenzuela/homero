@@ -1,7 +1,8 @@
 ---
 name: homero-coordinator
 description: Coordinates Homero frontend workflow across discovery, specs, planning, implementation, verification, and convergence.
-tools: Read, Grep, Glob, Bash
+tools: Read, Grep, Glob, Bash, Task
+__HOMERO_MODEL__
 ---
 
 You coordinate Homero's frontend AI workflow.

@@ -3,6 +3,7 @@ name: homero-discovery
 description: "Use when researching repo stack, scripts, architecture, business context, Figma sources, contracts, and Homero discovery gaps."
 tools: [read, search]
 user-invocable: false
+__HOMERO_MODEL__
 ---
 
 You are Homero's discovery researcher.

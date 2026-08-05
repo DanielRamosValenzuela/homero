@@ -82,8 +82,41 @@ function fail(message) {
   process.exit(1);
 }
 
-function replaceTokens(content, projectName) {
-  return content.replaceAll("__PROJECT_NAME__", projectName);
+function replaceTokens(content, projectName, extra = {}) {
+  let output = content.replaceAll("__PROJECT_NAME__", projectName);
+
+  for (const [token, value] of Object.entries(extra)) {
+    // An empty value erases the whole line rather than leaving a bare key behind: a
+    // dangling `model:` is a malformed value on Claude Code and can break the YAML
+    // frontmatter on Copilot, which then skips the agent file entirely and silently.
+    output = value
+      ? output.replaceAll(token, value)
+      : output.replace(new RegExp(`^${token}\\r?\\n`, "gm"), "");
+  }
+
+  return output;
+}
+
+// Resolves the frontmatter `model:` line for one agent file, or "" to omit it.
+//
+// Keyed off the DESTINATION PATH, not the --client flag: a `--client both` install writes
+// both trees in one run, and keying off the flag would drop a Claude alias like `opus`
+// into a Copilot agent file, where it does not resolve.
+function agentModelLine(relativePath, config) {
+  const client = relativePath.startsWith(".claude")
+    ? "claude"
+    : relativePath.startsWith(path.join(".github", "agents"))
+      ? "copilot"
+      : null;
+
+  if (!client) {
+    return "";
+  }
+
+  const role = path.basename(relativePath).replace(/\.agent\.md$|\.md$/, "");
+  const pinned = config?.agents?.models?.[client]?.[role];
+
+  return typeof pinned === "string" && pinned.trim() ? `model: ${pinned.trim()}` : "";
 }
 
 function copyRecursive(sourceDir, destinationDir, options) {
@@ -111,7 +144,14 @@ function copyRecursive(sourceDir, destinationDir, options) {
     fs.mkdirSync(path.dirname(destinationPath), { recursive: true });
 
     if (textExtensions.has(extension) || entry.name === "AGENTS.md" || entry.name === "CLAUDE.md") {
-      fs.writeFileSync(destinationPath, replaceTokens(content.toString("utf8"), options.projectName), "utf8");
+      const relativePath = path.relative(options.targetRoot, destinationPath);
+      fs.writeFileSync(
+        destinationPath,
+        replaceTokens(content.toString("utf8"), options.projectName, {
+          __HOMERO_MODEL__: agentModelLine(relativePath, options.modelConfig)
+        }),
+        "utf8"
+      );
     } else {
       fs.writeFileSync(destinationPath, content);
     }
@@ -2043,12 +2083,25 @@ function init() {
 
   fs.mkdirSync(targetRoot, { recursive: true });
 
+  // Resolved BEFORE the copy loop: stampConfig runs at the end, and homero.config.json is
+  // itself written during the loop, so neither is available yet. An existing config wins
+  // so a re-init never reverts a team's model pins to the template defaults.
+  const existingConfigPath = path.join(targetRoot, "homero.config.json");
+  const modelConfig = fs.existsSync(existingConfigPath)
+    ? readJsonFile(existingConfigPath, "homero.config.json")
+    : JSON.parse(
+        replaceTokens(
+          fs.readFileSync(path.join(repoRoot, "templates", "core", "homero.config.json"), "utf8"),
+          projectName
+        )
+      );
+
   for (const sourceRoot of templateRootsForClient(client)) {
     if (!fs.existsSync(sourceRoot)) {
       fail(`Template root not found: ${sourceRoot}`);
     }
 
-    copyRecursive(sourceRoot, targetRoot, { force, projectName, summary });
+    copyRecursive(sourceRoot, targetRoot, { force, projectName, summary, targetRoot, modelConfig });
   }
 
   ensureGitignoreEntry(targetRoot, ".mcp.json");
@@ -2116,6 +2169,8 @@ function validateConfig(targetRoot, errors) {
     if (config.product?.portfolio !== "Falabella Seguros" || config.product?.designSystem !== "Tomaco") {
       errors.push("homero.config.json must declare Falabella Seguros and Tomaco as the required design system");
     }
+
+    validateModelPins(config, errors);
 
     if (!config.commands || typeof config.commands !== "object") {
       errors.push("homero.config.json must include a commands object");
@@ -2617,6 +2672,60 @@ function warnAboutLintGuardrail(targetRoot) {
   }
 }
 
+// Validates the SHAPE of agents.models — not availability. Homero cannot know a team's
+// Claude allowlist or their org's Copilot model policy, and both clients fail silently on
+// an unavailable model, so this is the only place a typo can be caught at all.
+function validateModelPins(config, errors) {
+  const models = config.agents?.models;
+
+  if (models === undefined) {
+    return;
+  }
+
+  if (models === null || typeof models !== "object" || Array.isArray(models)) {
+    errors.push("agents.models must be an object with `claude` and `copilot` maps");
+    return;
+  }
+
+  const knownRoles = new Set([config.agents?.coordinator, ...(config.agents?.roles || [])].filter(Boolean));
+  const claudeAliases = new Set(["inherit", "opus", "sonnet", "haiku", "fable"]);
+
+  for (const client of ["claude", "copilot"]) {
+    const pins = models[client];
+
+    if (pins === undefined) {
+      continue;
+    }
+
+    if (pins === null || typeof pins !== "object" || Array.isArray(pins)) {
+      errors.push(`agents.models.${client} must be an object mapping agent name to model name`);
+      continue;
+    }
+
+    for (const [role, value] of Object.entries(pins)) {
+      if (typeof value !== "string") {
+        errors.push(`agents.models.${client}.${role} must be a string ("" means: use the client default)`);
+        continue;
+      }
+
+      if (knownRoles.size > 0 && !knownRoles.has(role)) {
+        console.warn(`WARN  agents.models.${client}.${role} does not match any agent in agents.roles — this pin will never apply.`);
+      }
+
+      const pinned = value.trim();
+
+      // Claude Code only resolves Claude models. A Copilot picker name such as
+      // "GPT-5.6 Sol" silently falls back to the parent model there, which is exactly the
+      // failure this check exists to make loud.
+      if (client === "claude" && pinned && !claudeAliases.has(pinned) && !pinned.startsWith("claude-")) {
+        errors.push(
+          `agents.models.claude.${role} is "${pinned}", which Claude Code cannot resolve. Use ${[...claudeAliases].join("|")} or a claude-* model id.`
+        );
+      }
+    }
+  }
+}
+
 function generate() {
   const generator = commandArgs[0];
 
@@ -2806,7 +2915,11 @@ function upgrade() {
       const extension = path.extname(relativePath).toLowerCase();
       const isText = textExtensions.has(extension) || relativePath === "AGENTS.md" || relativePath === "CLAUDE.md";
       const raw = fs.readFileSync(sourcePath);
-      const templateContent = isText ? replaceTokens(raw.toString("utf8"), projectName) : raw;
+      const templateContent = isText
+        ? replaceTokens(raw.toString("utf8"), projectName, {
+            __HOMERO_MODEL__: agentModelLine(relativePath, config)
+          })
+        : raw;
 
       if (!fs.existsSync(destinationPath)) {
         summary.added += 1;

@@ -3,6 +3,7 @@ name: homero-planner
 description: "Use when creating technical plans, task lists, file-change plans, verification plans, and implementation sequencing from Homero specs."
 tools: [read, search]
 user-invocable: false
+__HOMERO_MODEL__
 ---
 
 You are Homero's frontend planning agent.

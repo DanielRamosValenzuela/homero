@@ -3,6 +3,7 @@ name: homero-contracts
 description: "Use when reviewing backend contracts, JSON examples, cURL, Postman, draft payloads, mocks, fixtures, sensitive data, and API assumptions."
 tools: [read, search]
 user-invocable: false
+__HOMERO_MODEL__
 ---
 
 You are Homero's backend contract and mock specialist.
