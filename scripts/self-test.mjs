@@ -204,6 +204,7 @@ const featureConfig = JSON.parse(fs.readFileSync(featureConfigPath, "utf8"));
 const feature = JSON.parse(fs.readFileSync(featurePath, "utf8"));
 feature.status = "ready";
 feature.requirements.acceptanceCriteria = ["The user can submit a valid quote form."];
+feature.requirements.uiStates = ["loading", "success", "empty", "email already quoted this month", "server timeout"];
 feature.contracts.mocks.registered = true;
 feature.contracts.mocks.source = "src/mocks/quote.ts";
 fs.mkdirSync(path.join(featureWorktree, "src", "mocks"), { recursive: true });
@@ -228,9 +229,25 @@ featureConfig.commands = {
   test: "node --version",
   e2e: "node --version"
 };
-fs.writeFileSync(featurePath, `${JSON.stringify(feature, null, 2)}\n`, "utf8");
 fs.writeFileSync(featureConfigPath, `${JSON.stringify(featureConfig, null, 2)}\n`, "utf8");
 
+// --- Negative test: mocks.registered=true is a claim, not proof — the file must really exist ---
+const featureWithMissingMock = {
+  ...feature,
+  contracts: { ...feature.contracts, mocks: { ...feature.contracts.mocks, source: "src/mocks/does-not-exist.ts" } }
+};
+fs.writeFileSync(featurePath, `${JSON.stringify(featureWithMissingMock, null, 2)}\n`, "utf8");
+runExpectFailure(["feature", "check", "--target", targetRoot, "--id", "FEAT-001"]);
+
+// --- Negative test: requirements.uiStates still the generic starting checklist ---
+const featureWithDefaultUiStates = {
+  ...feature,
+  requirements: { ...feature.requirements, uiStates: ["loading", "success", "empty", "validation-error", "business-error", "server-error"] }
+};
+fs.writeFileSync(featurePath, `${JSON.stringify(featureWithDefaultUiStates, null, 2)}\n`, "utf8");
+runExpectFailure(["feature", "check", "--target", targetRoot, "--id", "FEAT-001"]);
+
+fs.writeFileSync(featurePath, `${JSON.stringify(feature, null, 2)}\n`, "utf8");
 run(["feature", "check", "--target", targetRoot, "--id", "FEAT-001"]);
 run(["verify", "--target", targetRoot, "--id", "FEAT-001"]);
 
@@ -681,6 +698,7 @@ function readPhaseState() {
 const phaseFeature = JSON.parse(fs.readFileSync(phaseFeaturePath, "utf8"));
 phaseFeature.status = "ready";
 phaseFeature.requirements.acceptanceCriteria = ["The user can see phase transitions work."];
+phaseFeature.requirements.uiStates = ["loading", "success", "no transitions to show"];
 phaseFeature.contracts.mocks.registered = true;
 phaseFeature.contracts.mocks.source = "src/mocks/phases.ts";
 fs.mkdirSync(path.join(phaseFeatureWorktree, "src", "mocks"), { recursive: true });
@@ -806,6 +824,7 @@ const copilotEvidencePath = path.join(copilotFeatureDir, "evidence", "playwright
 const copilotFeature = JSON.parse(fs.readFileSync(copilotFeaturePath, "utf8"));
 copilotFeature.status = "ready";
 copilotFeature.requirements.acceptanceCriteria = ["The user can complete the copilot-only lifecycle."];
+copilotFeature.requirements.uiStates = ["loading", "success", "copilot-only edge case"];
 copilotFeature.contracts.mocks.registered = true;
 copilotFeature.contracts.mocks.source = "src/mocks/copilot.ts";
 fs.mkdirSync(path.join(copilotFeatureWorktree, "src", "mocks"), { recursive: true });

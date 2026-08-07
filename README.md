@@ -82,10 +82,13 @@ avisa con `SKIP ... (already discovered)`, porque puede que los hayas editado a
 mano. Usá `--force` cuando quieras regenerarlos desde tus respuestas nuevas.
 
 No hace falta correrlo a mano: es el mismo comando que usa `homero-coordinator`
-por dentro. La primera vez que le pidas algo a `/homero` en el chat (Copilot o
-Claude Code) en un repo sin descubrir, él mismo te hace las preguntas ahí y
-corre `discover` con tus respuestas como flags (`--framework`, `--formStack`,
-`--countries`, etc. — `--defaults` rellena lo que no preguntó). El comando de
+por dentro. Corré `/homero-discover` en el chat (Copilot o Claude Code) la
+primera vez en un repo — te hace las preguntas ahí mismo y corre `discover`
+con tus respuestas como flags (`--framework`, `--formStack`, `--countries`,
+etc. — `--defaults` rellena lo que no preguntó). Es un comando aparte de
+`/homero` a propósito: uno configura el repo, el otro implementa una pantalla
+— si igual arrancás directo con `/homero` en un repo sin descubrir, también
+te va a preguntar solo antes de seguir, como red de seguridad. El comando de
 consola sigue sirviendo igual si preferís manejarlo vos, o si tu cliente no
 soporta agentes personalizados.
 

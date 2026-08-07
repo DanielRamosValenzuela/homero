@@ -154,12 +154,18 @@ What's still genuinely rough:
 - **Discovery is Q&A only.** It does not inspect the existing repo for real
   conventions before asking — a brownfield install gets the same generic
   questions as a greenfield one.
-- **Verification gates are mostly existence/boolean checks**, not content
-  checks. `feature check` confirms `contracts.mocks.registered` is `true`, not
-  that the mock actually matches the recorded contract shape. `homero verify`
-  runs your real lint/typecheck/test/e2e commands (that part is genuinely
-  executable), but nothing checks the *feature spec* itself for internal
-  consistency.
+- **Verification gates are still mostly existence/boolean checks**, not deep
+  content checks, though two of the weakest spots got real fixes:
+  `contracts.mocks.registered` used to only need to be `true`, with no check
+  that `mocks.source` pointed at a real file — `feature check` now fails if it
+  doesn't. `requirements.uiStates` used to only need to be non-empty, which the
+  shipped template's own generic default already satisfied — `feature check`
+  now rejects that exact default array, forcing principle 14's "screen-specific
+  states, not the starting checklist" into something enforced, not just
+  written down. What's still unchecked: whether the mock's actual *shape*
+  matches the recorded contract, and whether the *feature spec* is internally
+  consistent. `homero verify` running your real lint/typecheck/test/e2e
+  commands remains the genuinely executable part.
 - **No worked example ships with the repo.** There's no sample
   `specs/<id>-<slug>/` or `features/<id>/` with realistic content — a
   first-time reader has to infer the expected level of detail from

@@ -815,6 +815,11 @@ function featureWorktreePath(targetRoot, id, config) {
   return path.join(path.resolve(targetRoot, worktreeRoot), path.basename(targetRoot), id);
 }
 
+// Shared with featureErrors(): the starting checklist featureTemplate() ships is fine as a
+// prompt, but principle 14 in constitution.md requires it get replaced with screen-specific UI
+// states — featureErrors() rejects a feature.json that still has this exact array, untouched.
+const defaultUiStates = ["loading", "success", "empty", "validation-error", "business-error", "server-error"];
+
 function featureTemplate({ id, name, branch, figmaUrl, figmaVersion, contractMode, contractSource, contractException, countries, config }) {
   return {
     schemaVersion: 1,
@@ -850,14 +855,7 @@ function featureTemplate({ id, name, branch, figmaUrl, figmaVersion, contractMod
     },
     requirements: {
       acceptanceCriteria: [],
-      uiStates: [
-        "loading",
-        "success",
-        "empty",
-        "validation-error",
-        "business-error",
-        "server-error"
-      ],
+      uiStates: [...defaultUiStates],
       openQuestions: []
     },
     verification: {
@@ -1125,6 +1123,10 @@ function featureErrors(targetRoot, feature) {
 
     if (!feature.contracts.mocks?.registered || !feature.contracts.mocks?.source) {
       errors.push("backend-dependent feature requires registered development mocks and their source");
+    } else if (!fs.existsSync(path.resolve(targetRoot, feature.contracts.mocks.source))) {
+      // mocks.registered=true + mocks.source is a claim, not proof — this is the exact gap that
+      // let an agent (or a human) mark mocks done without a real file ever landing on disk.
+      errors.push(`backend-dependent feature's mock source does not exist on disk: ${feature.contracts.mocks.source}`);
     }
   }
 
@@ -1138,6 +1140,12 @@ function featureErrors(targetRoot, feature) {
 
   if (!Array.isArray(feature.requirements?.uiStates) || feature.requirements.uiStates.length === 0) {
     errors.push("feature requires explicit UI states");
+  } else if (JSON.stringify(feature.requirements.uiStates) === JSON.stringify(defaultUiStates)) {
+    // Principle 14 in constitution.md: the shipped list is a starting checklist, not proof of
+    // analysis. Nothing enforced that until now — an untouched feature.json sailed through.
+    errors.push(
+      "feature requirements.uiStates is still the generic default checklist — principle 14 requires screen-specific UI states and exact validation copy, not the starting list `feature create` ships"
+    );
   }
 
   if (!Array.isArray(feature.requirements?.openQuestions) || feature.requirements.openQuestions.length > 0) {
@@ -1901,6 +1909,15 @@ function setupPlaywright() {
     ["pnpm", ["add", "-D", "@playwright/test", "@playwright/cli", "@axe-core/playwright"]],
     ["pnpm", ["exec", "playwright", "install", "chromium"]]
   ];
+
+  // Without this, a missing pnpm binary surfaced as a generic "Playwright setup failed while
+  // running: pnpm add ..." with no hint that pnpm itself, not the install, was the problem.
+  if (!dryRun && !commandAvailable("pnpm")) {
+    fail(
+      "homero setup playwright requires `pnpm` on PATH. Install it (https://pnpm.io/installation) " +
+        "or, on Node >=16.9, run `corepack enable` — then try again."
+    );
+  }
 
   if (dryRun) {
     for (const [executable, commandArgs] of commands) {
