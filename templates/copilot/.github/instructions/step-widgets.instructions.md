@@ -9,3 +9,10 @@ applyTo: "**/widgets/**/*.{ts,tsx}"
 - A shared summary widget must not read state stores directly; each step screen reads its own store and passes primitives as props.
 - Extend the existing step-to-section mapping when a new step needs a summary section, instead of inventing a parallel step enum.
 - Reuse one shared two-column step layout for steps that need an order/progress summary; don't force it on steps that don't need one.
+
+## Reject
+
+- A step screen reading another step's store directly.
+- A new step enum introduced only to key a summary section.
+- Duplicated header/content/summary markup across steps that all need the
+  same header/content/summary shape.

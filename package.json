@@ -1,20 +1,36 @@
 {
   "name": "homero",
   "version": "0.2.0",
+  "description": "AI-agent development harness for Falabella Seguros frontend repos: scaffolds a spec-driven workflow, Claude/Copilot agent adapters, and code-enforced guardrails (Tomaco, Figma, contracts, verification) via a zero-dependency CLI.",
   "private": true,
   "type": "module",
+  "license": "MIT",
+  "author": "Daniel Ramos Valenzuela",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DanielRamosValenzuela/homero.git"
+  },
+  "homepage": "https://github.com/DanielRamosValenzuela/homero#readme",
+  "bugs": {
+    "url": "https://github.com/DanielRamosValenzuela/homero/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "bin": {
     "homero": "./packages/cli/bin/homero.mjs"
   },
   "files": [
     "packages/",
     "templates/",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "homero": "node ./packages/cli/bin/homero.mjs",
     "bootstrap": "node ./scripts/bootstrap-harness.mjs",
     "validate:target": "node ./scripts/validate-harness.mjs",
-    "validate:self": "node ./scripts/self-test.mjs"
+    "validate:self": "node ./scripts/self-test.mjs",
+    "test": "node ./scripts/self-test.mjs"
   }
 }

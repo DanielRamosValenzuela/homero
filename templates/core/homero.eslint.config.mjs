@@ -12,7 +12,9 @@
  *   export default [...yourExistingConfig, ...homeroUseClient];
  *
  * ONE RULE, deliberately: any file that statically imports the design-system package
- * must carry the 'use client' directive — the gotcha recorded in .claude/rules/tomaco.md.
+ * must carry the 'use client' directive — the gotcha recorded in your client's Tomaco
+ * design-system rule (.claude/rules/tomaco.md for Claude, .github/instructions/
+ * tomaco-design-system.instructions.md for Copilot).
  * The cause is packaging: tomaco-components ships a single bundle with no subpath
  * exports, so even importing a purely presentational component loads the module that
  * calls React hooks and inlines react-select/react-datepicker (devDependencies absent

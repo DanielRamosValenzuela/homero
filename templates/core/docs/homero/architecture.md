@@ -75,7 +75,9 @@
   uses no hooks — the package ships one bundle, built from one barrel, that
   imports React hooks and runs module-scope side effects, and it exposes no
   subpath exports, so no export of it is server-safe. Type-only imports are
-  exempt. See `.claude/rules/tomaco.md` for the full reasoning
+  exempt. See your client's Tomaco design-system rule for the full reasoning
+  (`.claude/rules/tomaco.md` for Claude, `.github/instructions/tomaco-design-system.instructions.md`
+  for Copilot)
 - Do not reintroduce an ambiguous or duplicate name for a concept that
   already has a resolved name in the repo (e.g. a country/form resolver) —
   check existing naming before adding a parallel abstraction

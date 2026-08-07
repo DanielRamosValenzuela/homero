@@ -5,8 +5,12 @@ argument-hint: <Figma URL> [short intent]
 ---
 
 Treat everything typed after `/homero` as the Figma URL and/or intent for
-this task. If no Figma URL is present, ask for one before doing anything
-else. Otherwise follow your normal homero-coordinator workflow end to end —
+this task. If `homero.config.json` still looks undiscovered, run discovery
+conversationally first, per your normal homero-coordinator instructions —
+that alone is a valid use of this prompt, with no Figma URL required. Only
+when the intent is to implement a specific screen and no Figma URL is
+present should you ask for one before doing anything else. Otherwise follow
+your normal homero-coordinator workflow end to end —
 derive the feature, run `feature create` yourself, delegate to the other
 agents, and drive the implementation loop — without pausing for
 confirmation between steps unless a real blocking business, Figma, or

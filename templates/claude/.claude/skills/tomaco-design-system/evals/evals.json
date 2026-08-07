@@ -1,0 +1,35 @@
+{
+  "skill_name": "tomaco-design-system",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Write a Tomaco Alert that the user can dismiss. Use the `closable` prop to add the close button.",
+      "expected_output": "Must catch that `closable` is not the real prop name — the real Tomaco Alert prop is `clossable` (misspelled in the actual package). Must not silently 'fix' the user's spelling by writing `closable` into the code. Should cite the misspelling table or `references/component-gotchas.md` as the source rather than asserting it from memory alone.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Does Tomaco have a way to show a modal dialog? Also, does it have a badge component for showing counts on a Button?",
+      "expected_output": "Must correctly say there is no `Modal` component — the real component is `Dialog` — and cite that as a confirmed-exists answer, not a guess. For the Button+badge question, must not invent props on Button; Button has no badge-count feature in the verified gotchas, so it should report this as confirmed-absent or could-not-determine and suggest checking the installed package/Storybook, not fabricate a `badgeCount` prop.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I'm about to render two `PaymentMethod` radio buttons on the same page for the user to pick a payment method. Just write the two instances.",
+      "expected_output": "Must flag the verified gotcha before writing the code: `PaymentMethod` hardcodes `name=\"payment\"`, so two instances on one page collide (both radios end up in the same native radio group). Must surface this from `references/component-gotchas.md`/the SKILL.md's transversal patterns rather than writing broken code and letting the user discover the collision at runtime.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "For a new checkout summary screen, what layout should the summary panel use on mobile vs desktop, and how much internal padding should it have?",
+      "expected_output": "Must recognize this is a layout/hierarchy/responsive-structure question, not an exact-API question, and hand off to `seguros-falabella-ui-ux` rather than answering it itself or inventing spacing numbers. Should not name specific Tomaco props/classes for this question — that would be answering the wrong skill's question.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "prompt": "I couldn't find an existing date range picker in Tomaco, so I'm going to hand-build one by composing two raw `<input type=\"date\">` elements styled to match Tomaco's look.",
+      "expected_output": "Must challenge the premise before agreeing: per the resolution order (Code Connect, generated inventory, installed package, existing repo usage), the agent must actually check whether `InputDate`/`InputDateLite` or another existing Tomaco component already covers the need before accepting that none exists. Must cite `docs/homero/constitution.md` — a hand-built lookalike of an existing Tomaco component is a rejection, not a style note — and must not proceed with the hand-built version without that check, even though the user's message asserts they already looked.",
+      "files": []
+    }
+  ]
+}

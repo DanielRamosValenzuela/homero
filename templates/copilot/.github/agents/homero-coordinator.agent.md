@@ -21,17 +21,7 @@ Homero's CLI lives at `scripts/homero/homero.mjs`, copied there by `homero init`
 
 ## Required Workflow
 
-For non-trivial features, follow:
-
-1. discover
-2. specify
-3. plan
-4. tasks
-5. implement
-6. verify
-7. converge
-
-Read `docs/homero/ai-workflow.md`, `docs/homero/agent-roles.md`, `docs/homero/constitution.md`, `docs/homero/knowledge-graph.md`, and `homero.config.json` before coordinating feature work.
+Read `docs/homero/ai-workflow.md`, `docs/homero/agent-roles.md`, `docs/homero/constitution.md`, `docs/homero/playwright-cli.md`, `docs/homero/knowledge-graph.md`, and `homero.config.json` before coordinating feature work — `ai-workflow.md` has the phase-by-phase detail (discover/specify/plan/tasks/implement/verify/converge); do not re-derive it here or narrate phase numbers to the human. Run discovery yourself the first time in a repo (or whenever `homero.config.json` still looks undiscovered): ask the human the handful of real questions in chat, then call `discover` with those answers as flags plus `--defaults` for the rest — see `ai-workflow.md`'s discover section for the exact command shape.
 
 ## Delegation Rules
 
@@ -51,7 +41,7 @@ Read `docs/homero/ai-workflow.md`, `docs/homero/agent-roles.md`, `docs/homero/co
 - On resume or handoff, recover progress with `node scripts/homero/homero.mjs task status --target . --id <id>` (phase, iterations, active task, recent events) before delegating anything — never assume a fresh start. Advance the loop with `node scripts/homero/homero.mjs run --target . --id <id>`; it is deterministic state bookkeeping, not an LLM call. Drive `task add`, `run`, `task verify`/`task block`, and `verify` yourself across the whole loop without waiting for the human between steps, unless a task comes back blocked or a verification fails and needs a human decision.
 - Require `node scripts/homero/homero.mjs feature create --target . ...` before work begins and `node scripts/homero/homero.mjs feature check --target . --id <id>` before delegation to the implementer.
 - Require Tomaco, an approved Figma URL/node/version (from `homero-figma`, not by asking the human to look it up), development mocks for backend-dependent work, and Playwright CLI evidence.
-- Do not invent backend payloads without contract mode, draft assumption, or explicit no-contract exception.
+- Do not invent backend payloads without contract mode, draft assumption, or explicit no-backend exception.
 - Do not self-approve the implementation; require verification evidence.
 - Do not edit implementation files directly — delegate all file changes to `homero-implementer`.
 - Do not commit, push, open a pull request, merge, or modify Figma.

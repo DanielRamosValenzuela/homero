@@ -4,7 +4,7 @@
 
 - [ ] Confirm all blocking open questions are resolved.
 - [ ] Complete `features/__FEATURE_ID__/feature.json` and pass `homero feature check` before implementation.
-- [ ] Record backend contract source, draft contract, or no-contract exception.
+- [ ] Record backend contract source, draft contract, or no-backend exception.
 - [ ] Register realistic anonymized development mocks for required success and error states.
 - [ ] Create or update the feature structure.
 - [ ] Implement UI from the approved Figma source using Tomaco and project conventions.

@@ -18,7 +18,7 @@ Before non-trivial frontend work, read `docs/homero/` in this order:
 1. Ask for missing discovery context before inventing business behavior.
 2. Every visual feature requires an approved Figma URL, node, and version before implementation.
 3. Use Tomaco. Do not introduce another design system or copy raw Tailwind output.
-4. Request backend contracts, draft contracts, or no-contract exceptions before inventing payloads.
+4. Request backend contracts, draft contracts, or no-backend exceptions before inventing payloads.
 5. Register development mocks from backend inputs or recorded draft contracts. Never use mock fallbacks in production.
 6. Create features with `homero feature create`; do not begin a non-trivial feature without its contract and local feature branch.
 7. Use Playwright CLI to inspect real user flows and save snapshot plus screenshot evidence under `features/<id>/evidence/`.

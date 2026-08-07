@@ -29,11 +29,65 @@ the same operating model:
 
 ## Target lifecycle
 
-Homero should support this frontend AI lifecycle:
+The lifecycle this section originally proposed was:
 
 ```text
 init -> discover -> constitution -> specify -> plan -> tasks -> implement -> verify -> converge
 ```
+
+That's still the right shape of the *idea*, but `constitution`/`specify`/
+`plan`/`tasks`/`implement`/`converge` were never built as six separate CLI
+commands, and won't be — the design that actually shipped folds them into
+fewer, more deterministic pieces instead. Real lifecycle, phase by phase:
+
+- **init** → `homero init`, unchanged.
+- **discover** → `homero discover`, unchanged as a command, but no longer
+  console-only in practice: `homero-coordinator` is instructed to run it
+  itself from chat the first time a repo looks undiscovered, asking the
+  human the handful of real questions conversationally and passing them as
+  per-field flags (`discover` already accepted `--<fieldName>` plus
+  `--defaults` for the rest — the gap was the coordinator prompt never
+  calling it that way, not a missing CLI feature).
+- **constitution** → not a command. `discover` generates
+  `docs/homero/constitution.md` directly as part of its interview output; there
+  is nothing to run separately.
+- **specify / plan / tasks** → not three commands. `homero feature create`
+  copies `specs/_template/{spec,plan,tasks}.md` into `specs/<id>-<slug>/` in
+  one step, git-worktree-isolated on a feature branch. Filling those three
+  files in is a human/agent editing task (`homero-discovery` and
+  `homero-planner` in `docs/homero/agent-roles.md`), not something the CLI
+  generates content for.
+- **implement** → `homero task add` to record tasks, then `homero run` /
+  `homero task verify` / `homero task block` to drive the deterministic task
+  loop in `features/<id>/state.json` (iteration/attempt limits, phase
+  transitions — see `docs/homero/ai-workflow.md`).
+- **verify** → `homero verify`, runs the configured lint/typecheck/test/e2e
+  commands and writes an immutable receipt under `features/<id>/receipts/`.
+  `homero feature check` is a separate, earlier gate (Figma/contract/countries
+  recorded) run before implementation starts, not after.
+- **converge** → not a command. There is no automated "compare code, spec,
+  plan, and tasks" step — `homero-reviewer` does this as a delegated review,
+  and the human accepts the feature by hand (`feature.json` `status:
+  "accepted"`, which `run`/`task verify` are hard-coded to never silently
+  revert).
+
+Maintenance commands that don't belong to any single feature's lifecycle:
+`homero upgrade` (refresh an existing install), `homero version` (drift
+check), `homero generate form`/`generate catalog` (deterministic scaffolds),
+`homero setup playwright`/`setup graphify` (one-time tooling installs).
+
+See `docs/architecture.md`'s "Commands" section for the full, current command
+list, or `homero <command> --help` for the authoritative flag reference.
+
+Each phase's underlying goal (governing rules that reject bad plans, a spec
+that captures what/why before how, a plan that names real files, small
+verifiable tasks, executable verification, closing the loop instead of
+silently declaring victory) is still exactly what the real commands above are
+for — only the packaging changed, from six sequential commands to the
+`discover` + `feature create` + task-loop + `verify` shape described above.
+
+Two of the original phases are still real, standalone commands worth
+detailing on their own:
 
 ### init
 
@@ -70,114 +124,58 @@ Expected output:
 - completed `docs/homero/contracts.md`
 - completed `homero.config.json`
 
-### constitution
+## Command model
 
-Create or update project principles that future features must obey.
-
-Expected output:
-
-- `docs/homero/constitution.md`
-
-This should be short and governing, not a tutorial. It should state the rules
-that would cause a feature plan or implementation to be rejected.
-
-### specify
-
-Create a feature spec from user intent and Figma inputs. The spec should focus
-on what and why before implementation details.
-
-Expected output:
-
-- `specs/<feature>/spec.md`
-
-The spec should include user stories, business rules, design references, edge
-cases, contract and mock requirements, acceptance criteria, and open questions.
-
-### plan
-
-Turn the spec into a technical plan adapted to the actual repo.
-
-Expected output:
-
-- `specs/<feature>/plan.md`
-
-The plan should name files to create or modify, reuse patterns found in the
-repo, identify risks, and define verification steps.
-
-### tasks
-
-Break the plan into ordered implementation tasks.
-
-Expected output:
-
-- `specs/<feature>/tasks.md`
-
-Tasks should be small enough for an AI agent to execute and validate without
-re-reading the whole project.
-
-### implement
-
-Execute the task list. The AI should ask questions only when the spec or plan
-has blocking ambiguity. Otherwise, it should implement, run focused checks, and
-iterate.
-
-### verify
-
-Run deterministic checks and produce evidence.
-
-Expected checks:
-
-- configured lint command
-- configured typecheck command
-- configured test command
-- generated artifact checks
-- Figma/design comparison checklist
-- no unresolved open questions in the feature spec
-
-### converge
-
-Compare code, spec, plan, and tasks after implementation. If gaps remain, add
-explicit follow-up tasks instead of silently considering the feature done.
-
-## Recommended Homero command model
-
-```powershell
-homero init --target <repo> --client copilot|claude|both
-homero discover --target <repo>
-homero constitution --target <repo>
-homero specify --target <repo> --feature <name> --figma <url>
-homero plan --target <repo> --feature <name>
-homero tasks --target <repo> --feature <name>
-homero implement --target <repo> --feature <name>
-homero verify --target <repo> --feature <name>
-homero converge --target <repo> --feature <name>
-```
+See `docs/architecture.md`'s "Commands" section for the full, current list —
+duplicating it here would just create a second place for it to drift out of
+sync with the CLI. The short version: `init`, `discover`, `feature create`/
+`check`, `run`/`task add|verify|block|status`, `verify`, plus the maintenance
+commands `upgrade`/`version`/`generate form|catalog`/`setup playwright|graphify`.
 
 ## Assessment of current Homero
 
-Homero is moving in the right direction because it already has:
+What's actually built, as of this writing:
 
-- a CLI-first foundation
-- a portable core template
-- separate Copilot and Claude adapters
-- local deterministic generation
-- validation of installed harness files
+- A CLI-first foundation with a real deterministic state machine
+  (`features/<id>/state.json`, iteration/attempt/verify-attempt limits,
+  events.ndjson audit trail) — not just file scaffolding.
+- A portable core template plus two adapters (Claude, Copilot) kept at
+  content parity by hand: same 7 agent roles, same rules, same two
+  design-system skills, translated per client's own format.
+- Local deterministic generation for forms (`generate form`) and for the
+  Tomaco component catalog (`generate catalog`, reads the real installed
+  package so the inventory can't silently drift from what's actually shipped).
+- Validation of installed harness files per client, plus an `upgrade` command
+  that refreshes Homero-managed files while leaving discover-authored docs and
+  recorded config values alone (merge, not overwrite).
 
-The main missing pieces are:
+What's still genuinely rough:
 
-- richer repo inspection during discovery
-- feature-specific spec, plan, and tasks commands
-- command templates for spec-driven work
-- richer handoffs between custom agents and CLI commands
-- stronger verification gates beyond file existence, including contract/mock checks
-- migrations or upgrade strategy for repos that already have Homero installed
-
-## Next implementation priorities
-
-1. Add `homero specify` to create `specs/<feature>/spec.md` from the template.
-2. Add `homero plan` and `homero tasks` to create feature-specific planning artifacts.
-3. Add `homero verify` to run configured project commands and check feature
-   artifacts.
-4. Add adapter prompt files or skills that expose the lifecycle commands to
-   Copilot and Claude.
-5. Add idempotent upgrade behavior before distributing Homero broadly.
+- **Discovery is Q&A only.** It does not inspect the existing repo for real
+  conventions before asking — a brownfield install gets the same generic
+  questions as a greenfield one.
+- **Verification gates are mostly existence/boolean checks**, not content
+  checks. `feature check` confirms `contracts.mocks.registered` is `true`, not
+  that the mock actually matches the recorded contract shape. `homero verify`
+  runs your real lint/typecheck/test/e2e commands (that part is genuinely
+  executable), but nothing checks the *feature spec* itself for internal
+  consistency.
+- **No worked example ships with the repo.** There's no sample
+  `specs/<id>-<slug>/` or `features/<id>/` with realistic content — a
+  first-time reader has to infer the expected level of detail from
+  `specs/_template/` alone.
+- **The CLI is one 3000+ line file** (`packages/cli/bin/homero.mjs`) with no
+  module decomposition — a real maintainability cost as more surface area
+  gets added.
+- **No evals for the 7 agents.** Both design-system skills on the Claude side
+  now have `evals/evals.json` (5 prompts each: `seguros-falabella-ui-ux`,
+  `tomaco-design-system`), but that convention doesn't exist on the Copilot
+  side at all — every `.github/instructions/*.instructions.md` file has zero
+  automated checks of the judgment it claims to enforce.
+- **The claude/both client paths still have deeper coverage than copilot-only.**
+  `scripts/self-test.mjs` exercises the full feature/task-loop/verify lifecycle
+  (worktrees, task states, receipts) only against a `--client both` install; the
+  isolated `--client copilot` coverage is narrower (init/validate/`generate
+  catalog`/`upgrade`, not the full feature loop). It's the source of truth for
+  exactly what's covered right now — check it before assuming a given
+  command/flag combination is exercised.

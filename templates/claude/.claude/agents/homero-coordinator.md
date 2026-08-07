@@ -11,15 +11,14 @@ Homero's CLI lives at `scripts/homero/homero.mjs`, copied there by `homero init`
 
 Read `docs/homero/ai-workflow.md`, `docs/homero/agent-roles.md`, `docs/homero/constitution.md`, `docs/homero/playwright-cli.md`, `docs/homero/knowledge-graph.md`, and `homero.config.json` before coordinating feature work.
 
-For non-trivial features, follow:
-
-1. discover
-2. specify
-3. plan
-4. tasks
-5. implement
-6. verify
-7. converge
+Phase-by-phase detail (what discover/specify/plan/tasks/implement/verify/converge
+each mean in practice) lives in `docs/homero/ai-workflow.md`, already in your
+required reading above — do not re-derive it here or narrate phase numbers to
+the human. Run discovery yourself the first time in a repo (or whenever
+`homero.config.json` still looks undiscovered): ask the human the handful of
+real questions in chat, then call `discover` with those answers as flags plus
+`--defaults` for the rest — see `ai-workflow.md`'s discover section for the
+exact command shape.
 
 Delegate focused work to specialized agents when available:
 

@@ -61,20 +61,26 @@ Usage:
   homero init [--target <repo>] [--client <copilot|claude|both>] [--project-name <name>] [--force]
   homero upgrade [--target <repo>] [--client <copilot|claude|both>] [--dry-run] [--force]
   homero version [--target <repo>]
-  homero discover --target <repo> [--defaults] [--force]
+  homero discover --target <repo> [--defaults] [--force] [--<field> <value> ...]
   homero validate [--target <repo>] [--client <copilot|claude|both>]
   homero generate form --target <repo> --name <FormName> --country <cl|pe|co> [--force]
   homero generate catalog [--target <repo>] [--package <specifier>]
   homero feature create --target <repo> --id <id> --name <name> --figma <url> --figma-version <version> --contract-mode <contract-first|contract-draft|no-backend-exception> --countries <cl|cl,pe,...> [--contract-source <source>] [--contract-exception <reason>]
   homero feature check --target <repo> --id <id>
   homero verify --target <repo> --id <id>
-  homero run --target <repo> --id <id>
+  homero run --target <repo> --id <id> [--json]
   homero task add --target <repo> --id <id> --title <title> [--paths <path,...>]
   homero task verify --target <repo> --id <id> --task <task-id> --summary <summary>
   homero task block --target <repo> --id <id> --task <task-id> --reason <reason>
-  homero task status --target <repo> --id <id>
+  homero task status --target <repo> --id <id> [--json]
   homero setup playwright --target <repo> [--dry-run]
-  homero setup graphify --target <repo> [--dry-run]`);
+  homero setup graphify --target <repo> [--dry-run]
+
+\`discover\`'s [--<field> <value> ...] answers any of its ~32 questions by flag
+(--framework, --formStack, --countries, --contractMode, and so on) instead of
+the interactive prompt — --defaults fills in whatever you didn't answer. See
+docs/homero/ai-workflow.md's discover section (in an installed repo) for the
+full field list and an example.`);
 }
 
 function fail(message) {
@@ -145,9 +151,15 @@ function copyRecursive(sourceDir, destinationDir, options) {
 
     if (textExtensions.has(extension) || entry.name === "AGENTS.md" || entry.name === "CLAUDE.md") {
       const relativePath = path.relative(options.targetRoot, destinationPath);
+      // __PROJECT_NAME__ sits inside a JSON string literal in homero.config.json — a raw
+      // substitution would break the JSON if the project name itself contains a quote or
+      // backslash. JSON.stringify(...).slice(1, -1) gives the same escaped text JSON.stringify
+      // would put between the quotes that are already in the template.
+      const tokenSafeProjectName =
+        extension === ".json" ? JSON.stringify(options.projectName).slice(1, -1) : options.projectName;
       fs.writeFileSync(
         destinationPath,
-        replaceTokens(content.toString("utf8"), options.projectName, {
+        replaceTokens(content.toString("utf8"), tokenSafeProjectName, {
           __HOMERO_MODEL__: agentModelLine(relativePath, options.modelConfig)
         }),
         "utf8"
@@ -203,6 +215,26 @@ function validateClient(client) {
   }
 }
 
+// The generated Tomaco catalog has one home per installed client: the Claude skill
+// keeps its own references/ file, Copilot has no references/ convention so its copy
+// sits flat next to the other .instructions.md files. `client` defaults to "both"
+// the same way validate/upgrade already do for repos that predate homeroClient.
+function catalogOutputPaths(targetRoot, client) {
+  const paths = [];
+
+  if (client === "claude" || client === "both") {
+    paths.push(
+      path.join(targetRoot, ".claude", "skills", "tomaco-design-system", "references", "component-api.md")
+    );
+  }
+
+  if (client === "copilot" || client === "both") {
+    paths.push(path.join(targetRoot, ".github", "instructions", "tomaco-component-api.md"));
+  }
+
+  return paths;
+}
+
 function isSourceRepo() {
   // repoRoot is currentDir/../../.. — correct for packages/cli/bin/homero.mjs in the
   // Homero source tree, but from a vendored scripts/homero/homero.mjs it resolves to the
@@ -251,8 +283,14 @@ function readConfig(targetRoot) {
 }
 
 function writeJsonFile(filePath, value) {
+  // Temp file + rename, not a direct writeFileSync: state.json/feature.json get rewritten on
+  // every `run`/`task verify`/`task block`/`verify` call mid agentic loop, and a process killed
+  // mid-write would otherwise leave truncated JSON that crashes every later command against
+  // that feature with no recovery path. Same reasoning as the CLI's own vendored-copy update.
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  const temporaryPath = `${filePath}.homero-tmp`;
+  fs.writeFileSync(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  fs.renameSync(temporaryPath, filePath);
 }
 
 function readJsonFile(filePath, description) {
@@ -369,7 +407,7 @@ const discoveryFields = [
   ["testRoot", "Test root path, relative to --target (default test)"],
   ["countries", "Countries or variants in scope"],
   ["figmaSource", "Figma source of truth"],
-  ["contractMode", "Backend contract mode: contract-first, contract-draft, or no-contract-exception"],
+  ["contractMode", "Backend contract mode: contract-first, contract-draft, or no-backend-exception"],
   ["contractFormat", "Backend contract format: openapi, json-schema, examples, postman, curl, manual, or none"],
   ["contractSource", "Backend contract source: path, URL, ticket, or TBD"],
   ["mockStrategy", "Mock strategy: fixtures, msw, service-layer-stub, or custom"],
@@ -941,7 +979,18 @@ function readLastEvents(featureDir, count) {
   }
 
   const lines = fs.readFileSync(eventsPath, "utf8").split("\n").filter(Boolean);
-  return lines.slice(-count).map(line => JSON.parse(line));
+  // A process killed mid-append can leave the last line truncated. Skip a line that fails to
+  // parse instead of crashing `task status` — the earlier, complete events are still useful.
+  return lines
+    .slice(-count)
+    .map(line => {
+      try {
+        return JSON.parse(line);
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
 }
 
 function implementBrief(feature, state, task) {
@@ -1267,7 +1316,11 @@ function featureCreate() {
   fs.mkdirSync(path.dirname(worktreePath), { recursive: true });
   const worktreeResult = git(targetRoot, ["worktree", "add", "-b", branch, worktreePath, "HEAD"]);
   if (worktreeResult.status !== 0) {
-    fail(`Could not create worktree for ${branch}: ${worktreeResult.stderr.trim()}`);
+    // stderr/error are both possibly undefined here, not just empty — spawnSync leaves them
+    // unset (not "") when git itself fails to spawn (e.g. missing from PATH) rather than
+    // running and exiting non-zero.
+    const reason = (worktreeResult.stderr || worktreeResult.error?.message || "unknown error").trim();
+    fail(`Could not create worktree for ${branch}: ${reason}`);
   }
 
   const paths = featurePaths(worktreePath, id, name);
@@ -2087,14 +2140,12 @@ function init() {
   // itself written during the loop, so neither is available yet. An existing config wins
   // so a re-init never reverts a team's model pins to the template defaults.
   const existingConfigPath = path.join(targetRoot, "homero.config.json");
+  // Parsed raw, without replaceTokens: modelConfig is only ever read for agents.models pins,
+  // never for projectName, so substituting the real project name first (and risking a quote
+  // or backslash in it breaking the JSON before it's even parsed) buys nothing.
   const modelConfig = fs.existsSync(existingConfigPath)
     ? readJsonFile(existingConfigPath, "homero.config.json")
-    : JSON.parse(
-        replaceTokens(
-          fs.readFileSync(path.join(repoRoot, "templates", "core", "homero.config.json"), "utf8"),
-          projectName
-        )
-      );
+    : JSON.parse(fs.readFileSync(path.join(repoRoot, "templates", "core", "homero.config.json"), "utf8"));
 
   for (const sourceRoot of templateRootsForClient(client)) {
     if (!fs.existsSync(sourceRoot)) {
@@ -2202,7 +2253,7 @@ function validateGenerator(targetRoot, errors) {
   });
 
   if (result.status !== 0) {
-    errors.push(`scripts/homero/new-form.mjs has a syntax error: ${result.stderr.trim()}`);
+    errors.push(`scripts/homero/new-form.mjs has a syntax error: ${(result.stderr || "").trim()}`);
   }
 }
 
@@ -2219,7 +2270,7 @@ function validateCliCopy(targetRoot, errors) {
   });
 
   if (result.status !== 0) {
-    errors.push(`scripts/homero/homero.mjs has a syntax error: ${result.stderr.trim()}`);
+    errors.push(`scripts/homero/homero.mjs has a syntax error: ${(result.stderr || "").trim()}`);
   }
 }
 
@@ -2388,7 +2439,11 @@ function generateCatalog() {
   const config = readConfig(targetRoot);
   const specifier = readArg("--package") || config.product?.designSystemPackage || "tomaco-components";
 
-  writeCatalog(targetRoot, specifier, { quiet: false });
+  try {
+    writeCatalog(targetRoot, specifier, { quiet: false });
+  } catch (error) {
+    fail(`Failed to generate the ${specifier} catalog: ${error.message}`);
+  }
 }
 
 // Callable from init/upgrade as well as from `generate catalog`. NEVER throws and never
@@ -2398,14 +2453,8 @@ function generateCatalog() {
 // quiet mode is for the init/upgrade path, where a "not installed" notice would be noise
 // in a 40-line install log — the user has not even run pnpm install at that point.
 function writeCatalog(targetRoot, specifier, { quiet }) {
-  const outputPath = path.join(
-    targetRoot,
-    ".claude",
-    "skills",
-    "tomaco-design-system",
-    "references",
-    "component-api.md"
-  );
+  const client = readConfig(targetRoot).homeroClient || "both";
+  const outputPaths = catalogOutputPaths(targetRoot, client);
 
   const packageRoot = path.join(targetRoot, "node_modules", ...specifier.split("/"));
   const packageManifestPath = path.join(packageRoot, "package.json");
@@ -2549,12 +2598,16 @@ function writeCatalog(targetRoot, specifier, { quiet }) {
     "It does **not** list props, and that omission is deliberate — inferred prop tables read",
     "as authoritative and are wrong often enough to be worse than nothing. For the exact",
     "props of a component, read its declaration under `node_modules/` or the repo's existing",
-    "usage, as `../SKILL.md` describes.",
+    "usage, per your client's Tomaco design-system guidance.",
     ""
   );
 
-  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-  fs.writeFileSync(outputPath, lines.join("\n"), "utf8");
+  const content = lines.join("\n");
+
+  for (const outputPath of outputPaths) {
+    fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+    fs.writeFileSync(outputPath, content, "utf8");
+  }
 
   const componentCount = hasDescribedCatalog ? Object.keys(described).length : exportNames.length;
 
@@ -2563,7 +2616,10 @@ function writeCatalog(targetRoot, specifier, { quiet }) {
     return;
   }
 
-  console.log(`WRITE ${outputPath}`);
+  for (const outputPath of outputPaths) {
+    console.log(`WRITE ${outputPath}`);
+  }
+
   console.log(`${specifier}@${packageManifest.version || "unknown"} — ${componentCount} components`);
 }
 
@@ -2583,33 +2639,10 @@ function refreshCatalogQuietly(targetRoot) {
 // recorded against a version the repo no longer installs is actively misleading — the
 // agent reads it as current and names components that may have moved.
 function warnAboutCatalog(targetRoot) {
-  const catalogPath = path.join(
-    targetRoot,
-    ".claude",
-    "skills",
-    "tomaco-design-system",
-    "references",
-    "component-api.md"
-  );
-
-  if (!fs.existsSync(catalogPath)) {
-    return;
-  }
-
-  const catalog = fs.readFileSync(catalogPath, "utf8");
   const config = readConfig(targetRoot);
+  const client = config.homeroClient || "both";
   const specifier = config.product?.designSystemPackage || "tomaco-components";
   const packageManifestPath = path.join(targetRoot, "node_modules", ...specifier.split("/"), "package.json");
-
-  if (!catalog.includes(generatedMarker)) {
-    if (fs.existsSync(packageManifestPath)) {
-      console.warn(
-        `WARN  The ${specifier} catalog was never generated, but the package is installed. Run \`homero generate catalog --target .\` so agents stop falling back to memory.`
-      );
-    }
-
-    return;
-  }
 
   if (!fs.existsSync(packageManifestPath)) {
     return;
@@ -2623,10 +2656,28 @@ function warnAboutCatalog(targetRoot) {
     return;
   }
 
-  if (installedVersion && !catalog.includes(`\`${installedVersion}\``)) {
-    console.warn(
-      `WARN  The ${specifier} catalog was generated against a different version than the installed ${installedVersion}. Run \`homero generate catalog --target .\` to refresh it.`
-    );
+  for (const catalogPath of catalogOutputPaths(targetRoot, client)) {
+    if (!fs.existsSync(catalogPath)) {
+      console.warn(
+        `WARN  The ${specifier} catalog was never generated at ${path.relative(targetRoot, catalogPath)}, but the package is installed. Run \`homero generate catalog --target .\` so agents stop falling back to memory.`
+      );
+      continue;
+    }
+
+    const catalog = fs.readFileSync(catalogPath, "utf8");
+
+    if (!catalog.includes(generatedMarker)) {
+      console.warn(
+        `WARN  The ${specifier} catalog was never generated at ${path.relative(targetRoot, catalogPath)}, but the package is installed. Run \`homero generate catalog --target .\` so agents stop falling back to memory.`
+      );
+      continue;
+    }
+
+    if (installedVersion && !catalog.includes(`\`${installedVersion}\``)) {
+      console.warn(
+        `WARN  The ${path.relative(targetRoot, catalogPath)} catalog was generated against a different version than the installed ${installedVersion}. Run \`homero generate catalog --target .\` to refresh it.`
+      );
+    }
   }
 }
 
@@ -2764,7 +2815,8 @@ const mergedFiles = new Set(["homero.config.json"]);
 // component inventory. Treating it as managed would revert every upgrade to
 // "NOT GENERATED YET" — silently reopening the exact gap the catalog exists to close.
 const generatedFiles = new Set([
-  path.join(".claude", "skills", "tomaco-design-system", "references", "component-api.md")
+  path.join(".claude", "skills", "tomaco-design-system", "references", "component-api.md"),
+  path.join(".github", "instructions", "tomaco-component-api.md")
 ]);
 
 // Repo-root instruction files a team may plausibly have written BEFORE installing Homero.
@@ -2977,11 +3029,18 @@ function upgrade() {
     }
   }
 
+  // `init` adds this, but a repo installed before that existed (or one that lost the line some
+  // other way) had no way to get it back short of a full re-init — upgrade should heal it too.
+  if (!dryRun) {
+    ensureGitignoreEntry(targetRoot, ".mcp.json");
+  }
+
+  // Parsed raw, without replaceTokens: mergeConfig() only ever takes templateConfig's
+  // projectName when the target config doesn't already have one, which upgrade's target always
+  // does — so substituting the real project name first buys nothing and risks a quote or
+  // backslash in it breaking the JSON before it's even parsed.
   const templateConfig = JSON.parse(
-    replaceTokens(
-      fs.readFileSync(path.join(repoRoot, "templates", "core", "homero.config.json"), "utf8"),
-      projectName
-    )
+    fs.readFileSync(path.join(repoRoot, "templates", "core", "homero.config.json"), "utf8")
   );
   const addedKeys = [];
   const nextConfig = mergeConfig(config, templateConfig, addedKeys);

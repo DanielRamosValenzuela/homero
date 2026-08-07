@@ -53,7 +53,7 @@ of this feature. Do not design or implement a surface that has neither.
 
 ## Backend contract and mock requirements
 
-- Contract mode: contract-first | contract-draft | no-contract-exception
+- Contract mode: contract-first | contract-draft | no-backend-exception
 - Contract format: openapi | json-schema | examples | postman | curl | manual | none
 - Mock states required: success, loading, empty, validation error, business error, network/server error
 - Sensitive data policy: anonymized examples only

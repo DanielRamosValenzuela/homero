@@ -90,7 +90,7 @@ Additional asset families detected in the same file:
 
 ### Checkout desktop happy path
 
-- The checkout pattern confirms a clear desktop split: `736px` main task area with a `352px` summary support column.
+- The checkout pattern confirms a clear desktop split using the `Container.lg.OMNI` variant (`1120px` max content): `736px` main task area with a `352px` summary support column. This is the OMNI figure, not the standard `Container.lg.SF` (`1152px` max content) `757px` / `363px` split — do not quote `736 / 352` without the OMNI qualifier.
 - The main flow stacks selectable payment cards, headings, promo markers, and a bottom action button.
 - The summary stays visible as secondary support and should not overtake the decision flow.
 - This is a strong reference for any task involving step-based selection plus recap.

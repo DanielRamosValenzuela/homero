@@ -25,6 +25,14 @@ It creates a local `feature/<id>-<slug>` branch without committing, plus:
 - `features/<id>/evidence/playwright-cli.json`: browser evidence manifest
 - `specs/<id>-<slug>/`: human-readable spec, plan, and tasks
 
+**All of the above lives in a separate git worktree, not the current checkout**
+(default `../.homero-worktrees/<repo>/<id>`, printed by the command and
+recorded in `homero.config.json` `workspace.worktreeRoot`). Every command and
+file edit for this feature — `homero-implementer`'s edits included — must
+happen inside that worktree path, not the repo you ran `feature create` from.
+`homero task status`/`run`/`verify` find the worktree automatically; a direct
+file edit does not.
+
 `homero feature check` blocks a feature when Figma, Tomaco, contracts, development mocks, acceptance criteria, open questions, responsive coverage, or Playwright CLI evidence are incomplete.
 
 ## Figma and visual fidelity

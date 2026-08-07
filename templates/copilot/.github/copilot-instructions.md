@@ -20,12 +20,21 @@ Before making non-trivial frontend changes, read:
 6. `docs/homero/playwright-cli.md`
 7. `docs/homero/knowledge-graph.md`
 
+Frontend/UI/UX and Tomaco component rules apply automatically while editing
+matching files, via `.github/instructions/*.instructions.md` — in particular
+`seguros-falabella-ui-ux.instructions.md` (layout, hierarchy, pattern reuse)
+and `tomaco-design-system.instructions.md` (exact component/prop/class/token,
+plus `tomaco-component-gotchas.md` for verified per-component traps). These
+are Copilot's equivalent of the `seguros-falabella-ui-ux` and
+`tomaco-design-system` skills installed for Claude — same content, ported to
+`applyTo`-triggered instructions since Copilot has no skills concept.
+
 Use Homero as the harness contract:
 
 - Start every non-trivial feature with `homero feature create`; it creates the required local feature branch and contract. Do not create commits.
 - Use Tomaco and existing project conventions over generated CSS or Tailwind-style output. Tomaco is mandatory.
 - Require and record the approved Figma URL, node, and version before implementing visible UI.
-- For backend-dependent features, request a contract source, draft contract, or explicit no-contract exception before inventing payloads.
+- For backend-dependent features, request a contract source, draft contract, or explicit no-backend exception before inventing payloads.
 - Register realistic anonymized mocks from the API or draft contract. Mocks are development-only and cannot be production fallbacks.
 - Ask for missing business context when behavior is ambiguous.
 - Prefer `scripts/homero/new-form.mjs` for repeated form scaffolds.

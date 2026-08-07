@@ -14,7 +14,7 @@ Homero's CLI lives at `scripts/homero/homero.mjs`, copied there by
 2. Every visual feature requires an approved Figma URL, node, and version. Unclear business behavior must be clarified.
 3. Tomaco is mandatory for all UI implementation.
 4. Forms must use the project-approved validation and state-management stack.
-5. Backend-dependent frontend work must request a contract source, draft contract, or explicit no-contract exception.
+5. Backend-dependent frontend work must request a contract source, draft contract, or explicit no-backend exception.
 6. Mocks must be realistic, anonymized, traceable to a contract source or recorded assumption, and development-only.
 7. Feature work must start with `homero feature create`, creating a local branch, contract, spec, plan, task list, Playwright CLI evidence, and verification receipt.
 8. The AI agent must ask about blocking ambiguity before implementing.

@@ -52,7 +52,7 @@ que todo agente Homero lee antes de trabajar:
 
 ## ⚙️ Requisitos
 
-- Git, Node.js, `pnpm`
+- Git, Node.js ≥18, `pnpm`
 - Un repositorio frontend con `package.json`
 - Figma aprobado y un contrato backend (o ejemplos/cURLs) por feature
 
@@ -80,6 +80,14 @@ node scripts/homero/homero.mjs discover --target .
 reemplaza los templates que dejó `init`; de ahí en adelante los respeta y te
 avisa con `SKIP ... (already discovered)`, porque puede que los hayas editado a
 mano. Usá `--force` cuando quieras regenerarlos desde tus respuestas nuevas.
+
+No hace falta correrlo a mano: es el mismo comando que usa `homero-coordinator`
+por dentro. La primera vez que le pidas algo a `/homero` en el chat (Copilot o
+Claude Code) en un repo sin descubrir, él mismo te hace las preguntas ahí y
+corre `discover` con tus respuestas como flags (`--framework`, `--formStack`,
+`--countries`, etc. — `--defaults` rellena lo que no preguntó). El comando de
+consola sigue sirviendo igual si preferís manejarlo vos, o si tu cliente no
+soporta agentes personalizados.
 
 `init`, `upgrade` y `validate` son los únicos comandos que siguen yendo por
 `npx` (necesitan el source de Homero, no el archivo ya copiado); todo el
@@ -133,6 +141,10 @@ del CLI vendorizado, con aviso si hay drift entre ellas:
 ```powershell
 npx github:DanielRamosValenzuela/homero version --target .
 ```
+
+Ver [`CHANGELOG.md`](./CHANGELOG.md) para qué significa cada salto de versión
+— en particular el límite 0.1.x/0.2.x, donde `upgrade` se niega a correr en
+vez de adivinar.
 
 Copiá `mcp.example.json` a `.mcp.json` y completá tus servidores MCP reales
 (Figma y los que sumes) — `.mcp.json` queda gitignoreado porque puede
@@ -277,8 +289,8 @@ llega a la etapa de implementación.
 
 ### 3. Trabajar el feature — el loop de tareas
 
-Con `--client claude` o `--client both`, un solo comando alcanza — no hace
-falta crear el feature a mano primero:
+Con cualquier client (`copilot`, `claude`, o `both`), un solo comando alcanza
+— no hace falta correr `discover` ni crear el feature a mano primero:
 
 ```text
 /homero implementa esta pantalla de Figma: https://www.figma.com/design/...
@@ -405,10 +417,14 @@ sola sesión.
 
 Las dos skills del diagrama las instala Homero: con `--client claude` (o
 `both`) quedan en `.claude/skills/seguros-falabella-ui-ux/` y
-`.claude/skills/tomaco-design-system/` — no hay que escribirlas a mano.
-`seguros-falabella-ui-ux` responde el *por qué* y el *dónde* (layout,
-jerarquía, patrones); `tomaco-design-system` responde el *qué* exacto: qué
-componente, prop o token existe realmente en código.
+`.claude/skills/tomaco-design-system/` — no hay que escribirlas a mano. Con
+`--client copilot` (o `both`) el mismo contenido se instala como
+`.github/instructions/seguros-falabella-ui-ux.instructions.md` y
+`.github/instructions/tomaco-design-system.instructions.md` (Copilot no tiene
+concepto de skills, así que se aplican solas vía `applyTo` en vez de
+invocarse por nombre). `seguros-falabella-ui-ux` responde el *por qué* y el
+*dónde* (layout, jerarquía, patrones); `tomaco-design-system` responde el
+*qué* exacto: qué componente, prop o token existe realmente en código.
 
 Esa segunda skill lee un **inventario de componentes** generado desde tu
 instalación real: los 40 componentes de Tomaco con su descripción y sus
@@ -416,9 +432,23 @@ keywords, agrupados por categoría. Sin él, el archivo dice *"NOT GENERATED
 YET"* y el agente vuelve a nombrar componentes de memoria — que es
 exactamente lo que la constitución prohíbe.
 
+`tomaco-design-system` también trae `references/component-gotchas.md`
+(`.github/instructions/tomaco-component-gotchas.md` en Copilot) — a
+diferencia del inventario, este archivo **no se genera**, es una auditoría
+manual del código real de `tomaco-components@1.14.42`: props mal nombradas,
+`id`/`name` hardcodeados que colisionan con dos instancias en la misma
+página, componentes totalmente controlados, truncado silencioso, props que
+compilan pero no hacen nada en runtime. Ninguna de esas trampas sale en el
+inventario generado (que solo trae nombre/descripción/keywords) ni en los
+tipos de TypeScript — hay que releerlo y actualizarlo a mano si el equipo
+sube de versión Tomaco.
+
 **No hace falta que lo corras a mano.** `init` y `upgrade` lo generan solos si
 `node_modules` ya tiene el paquete, y `validate` te avisa cuando falta o quedó
-viejo:
+viejo. El destino depende de `homeroClient` en `homero.config.json`: escribe
+`.claude/skills/tomaco-design-system/references/component-api.md` para
+claude/both y `.github/instructions/tomaco-component-api.md` para
+copilot/both — en una instalación `both` genera los dos:
 
 ```text
 WARN  The tomaco-components catalog was generated against a different version
@@ -484,11 +514,24 @@ Usa `node scripts/homero/homero.mjs <comando> --help` para ver los argumentos di
 | Comando | Uso |
 | --- | --- |
 | `homero generate form` | Genera un formulario repetitivo por país. |
-| `homero generate catalog` | Genera el inventario de componentes de Tomaco que lee la skill `tomaco-design-system`. |
+| `homero generate catalog` | Genera el inventario de componentes de Tomaco (`--client`-aware: escribe en `.claude/` y/o `.github/` según `homeroClient`). |
 
 ## 🧪 Desarrollo local
 
 ```powershell
 npm run homero -- init --target C:\ruta\al\repo --client both --project-name mi-proyecto
 npm run validate:self
+# equivalente: npm test
 ```
+
+`npm run bootstrap -- <flags>` y `npm run validate:target -- <flags>` son
+atajos finos sobre `homero init`/`homero validate` (evitan escribir `node
+./packages/cli/bin/homero.mjs` completo) para cuando estás parado en el
+propio repo de Homero probando contra un repo target.
+
+`.github/workflows/ci.yml` corre `validate:self` en cada push/PR a `main`, en
+ubuntu-latest y windows-latest, contra Node 18 y 20.
+
+## 📄 Licencia
+
+MIT — ver [`LICENSE`](./LICENSE).

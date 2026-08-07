@@ -12,6 +12,9 @@
 # Local AI-client state (never part of the harness Homero installs)
 /.claude/settings.local.json
 
+# Real MCP server config (Figma tokens etc.) — copy from templates/core/mcp.example.json
+/.mcp.json
+
 # OS / editor noise
 .DS_Store
 *.log

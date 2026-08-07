@@ -11,6 +11,13 @@ agent should move through these phases in order:
 discover -> specify -> plan -> tasks -> implement -> verify -> converge
 ```
 
+These are conceptual phases the agent moves through in one continuous
+session — not a sequence of commands to announce to the human one at a time,
+and not a pause point between each. The human sees, at most, a handful of
+discovery questions (first time in a repo) and a final report; everything
+else happens without asking for confirmation, unless a real blocking
+ambiguity comes up.
+
 ## Phase rules
 
 ### discover
@@ -19,6 +26,22 @@ Read the repo contract, ask missing stack and business questions, and record the
 answers in `docs/homero/` and `homero.config.json`. When exploring unfamiliar or
 large parts of the codebase, use `graphify` instead of a broad file-by-file read
 — see `docs/homero/knowledge-graph.md`.
+
+Run this yourself, in chat — never tell the human to open a terminal.
+`homero discover` accepts every question as a flag (e.g. `--framework`,
+`--formStack`, `--countries`, `--contractMode`; run `homero discover --help`
+for the full list) and falls back to sane defaults for anything you omit if
+you pass `--defaults`. Ask the human only the handful of questions that
+actually vary per repo — framework, form stack, design system package,
+countries, contract mode/source, test commands — as normal chat messages,
+then run discovery yourself with what you learned:
+
+```
+node scripts/homero/homero.mjs discover --target . --framework "Next.js 14" --formStack "React Hook Form + Zod" --countries "cl,pe" --defaults
+```
+
+Skip this phase entirely once `homero.config.json` already looks discovered
+(its `discovery`/`stack`/`contracts` fields are filled in, not `TBD`).
 
 ### specify
 

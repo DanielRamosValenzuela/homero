@@ -6,7 +6,7 @@ source and mock strategy for backend-dependent features.
 
 ## Contract mode
 
-- Mode: contract-first | contract-draft | no-contract-exception
+- Mode: contract-first | contract-draft | no-backend-exception
 - Format: openapi | json-schema | examples | postman | curl | manual | none
 - Source: local path, URL, ticket, or pasted examples
 - Owner:

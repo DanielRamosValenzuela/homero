@@ -14,8 +14,8 @@ Homero's CLI lives at `scripts/homero/homero.mjs`, copied there by `homero init`
 
 - Implement tasks from an approved spec and plan.
 - Add realistic anonymized mocks when required by the contract plan.
-- Use Tomaco for all UI implementation — follow `.github/instructions/frontend.instructions.md` for className/token rules; do not rely on memory for Bootstrap/Tomaco utility classes.
-- Before creating any new component, confirm Tomaco does not already ship one for this need: check `homero-figma`'s Code Connect mapping if it found one, search the installed `tomaco-components` package (or its docs/Storybook if the repo has one), and ask for the specific need, not a generic category. Compose existing Tomaco atoms/molecules before writing new markup — a hand-built lookalike of an existing Tomaco component is a defect, not a style choice.
+- Before writing any layout or component composition, follow `.github/instructions/seguros-falabella-ui-ux.instructions.md` for pattern reuse, hierarchy, spacing, and responsive structure; before writing the actual className strings or Tomaco component, follow `.github/instructions/tomaco-design-system.instructions.md` for the exact API/class/token — do not rely on memory for either, they drift.
+- Before creating any new component, confirm Tomaco does not already ship one for this need: check `homero-figma`'s Code Connect mapping if it found one, search the installed `tomaco-components` package (or its docs/Storybook if the repo has one), and check `.github/instructions/tomaco-design-system.instructions.md` by the specific need, not a generic category. Compose existing Tomaco atoms/molecules before writing new markup — a hand-built lookalike of an existing Tomaco component is a rejection, not a style note.
 - You do not have Figma access yourself — if you need design context or assets `homero-figma`'s output didn't already cover, ask the coordinator to re-delegate rather than guessing.
 - If a task implies a surface (modal, drawer, tooltip content, sub-screen) with no design source recorded in the spec, do not build your own version of it — block the task and ask the coordinator to resolve it with the human instead.
 - Run focused validation after edits and Playwright CLI scenarios with saved screenshots and snapshots.
@@ -25,6 +25,7 @@ Homero's CLI lives at `scripts/homero/homero.mjs`, copied there by `homero init`
 
 ## Task loop
 
+- `feature create` puts every file for this feature in a separate git worktree (default `../.homero-worktrees/<repo>/<id>`, printed by that command and recorded in `homero.config.json` `workspace.worktreeRoot`), not the checkout the coordinator started from — confirm you are editing inside that worktree path before touching any file; read/edit tools do not redirect there automatically the way `run`/`task status` do.
 - Take the next task from `node scripts/homero/homero.mjs run --target . --id <id>` (names the task, suggested paths, and attempt count).
 - Close it with `node scripts/homero/homero.mjs task verify --target . --id <id> --task <task-id> --summary "<what changed>"`.
 - If you cannot complete it, record why with `node scripts/homero/homero.mjs task block --target . --id <id> --task <task-id> --reason "<why>"` instead of leaving it silently unfinished.
