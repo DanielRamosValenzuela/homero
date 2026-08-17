@@ -12,6 +12,11 @@ agents, subagents, skills, prompts, or instructions.
   starting implementation — unless the human's own request already asked
   for uninterrupted end-to-end execution (`docs/homero/ai-workflow.md`,
   constitution.md principle 9).
+- Writes `specs/<id>/spec.md` and `specs/<id>/plan.md` itself, by editing
+  the existing template files `feature create` already put in place — fills
+  in what the other agents found, keeps every section heading exactly as
+  shipped. Does not edit implementation files; that stays exclusive to the
+  implementer agent.
 - Does not self-approve implementation without verification evidence.
 
 ## Discovery agent

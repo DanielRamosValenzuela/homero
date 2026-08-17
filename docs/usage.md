@@ -17,7 +17,7 @@ flowchart TD
     A["npx github:...homero"] --> B["CLI copiado a<br/>scripts/homero/homero.mjs"]
     B --> C["homero discover"]
     C --> D["homero validate"]
-    D --> E["homero feature create<br/>crea worktree + rama + feature.json"]
+    D --> E["homero feature create<br/>checkout de la rama en el mismo directorio + feature.json"]
     E --> F["Figma, contrato, mocks, criterios<br/>+ specs/&lt;id&gt;/plan.md pixel-perfect"]
     F --> G{"homero feature check"}
     G -- "falta algo" --> F
@@ -201,11 +201,12 @@ node apps/web/scripts/homero/homero.mjs discover --target apps/web
 ```
 
 Esto crea un `homero.config.json`, `docs/homero/`, `features/` y `specs/`
-independientes por app. `homero feature create` sigue funcionando igual: el
-worktree que crea contiene el repo completo (git no lo limita a la carpeta),
-así que una feature puede seguir tocando otro paquete del monorepo si hace
-falta — solo que el contrato, el estado del loop y la verificación quedan
-scoped a la app donde corriste `init`.
+independientes por app. `homero feature create` sigue funcionando igual: la
+rama que crea es de todo el repo (git no scopea ramas a una carpeta, aunque
+`--target` sí scopea dónde Homero escribe archivos), así que una feature
+puede seguir tocando otro paquete del monorepo si hace falta — solo que el
+contrato, el estado del loop y la verificación quedan scoped a la app donde
+corriste `init`.
 
 ## Uso
 
@@ -276,20 +277,18 @@ node scripts/homero/homero.mjs feature create `
   --countries cl
 ```
 
-- El árbol Git debe estar limpio antes de correr esto.
+- El árbol Git debe estar limpio antes de correr esto — el comando hace
+  `git checkout -b` en el mismo directorio donde estás parado, sin worktree.
+  Eso significa: solo una feature a la vez por checkout. Si tenés otra en
+  curso sin commitear, commiteala (o hacé stash) antes de crear una nueva; y
+  para retomar una feature ya creada en otra sesión, primero cambiate a su
+  rama (`git checkout feature/FEAT-042-cotizador-de-vida`).
 - `--countries` es obligatoria (lista separada por comas, ej. `cl,pe`) y queda
   registrada en `feature.json` como `product.countries` — toda feature debe
   declarar qué país(es) cubre.
-- El comando **no** trabaja sobre tu checkout actual: crea la rama
-  `feature/FEAT-042-cotizador-de-vida` en un **worktree separado** (carpeta
-  hermana de tu repo, normalmente `../.homero-worktrees/<repo>/FEAT-042`) e
-  imprime la ruta exacta. Muévete ahí para todo lo que sigue:
 
-  ```powershell
-  cd ..\.homero-worktrees\mi-repo\FEAT-042
-  ```
-
-Ahí se generaron:
+El comando queda parado en la misma carpeta, ya sobre la rama
+`feature/FEAT-042-cotizador-de-vida`. Ahí se generaron:
 
 ```text
 features/FEAT-042/
@@ -318,12 +317,20 @@ Luego:
 node scripts/homero/homero.mjs feature check --target . --id FEAT-042
 ```
 
-Bloquea el trabajo si falta Figma, contrato, mocks, criterios, evidencia, o
-alguna sección requerida de `plan.md` (componentes/tokens de Tomaco, estilos
+Bloquea el trabajo si falta Figma, contrato, mocks, criterios, o alguna
+sección requerida de `plan.md` (componentes/tokens de Tomaco, estilos
 pixel-perfect, archivos a crear o modificar, plan de formulario/validación,
 adaptación de Figma), o si no estás parado en la rama del feature. Este mismo
 chequeo se vuelve a correr por dentro cada vez que uses `homero run`, así que
 un feature incompleto nunca llega a la etapa de implementación.
+
+Deliberadamente **no** exige evidencia de Playwright acá — eso solo puede
+existir una vez que algo esté implementado, así que exigirlo antes de
+implementar volvería el gate imposible de pasar (era exactamente ese bug:
+`feature check` bloqueaba `/homero-implement` incluso con el plan
+perfectamente completo, porque pedía capturas de una UI que todavía no
+existía). La evidencia se exige en `homero verify`, una vez que hay algo que
+verificar.
 
 Cuando pasa, ese es el checkpoint: revisá `spec.md` y `plan.md` vos mismo
 antes de seguir. No hay comando que salte este paso — es una decisión
@@ -392,12 +399,14 @@ Ejecuta lint, typecheck, tests y E2E reales según `homero.config.json`. Si
 pasan, genera un receipt en `features/FEAT-042/receipts/` y el feature pasa a
 `needs-review` — nadie, ni la IA, se autoaprueba desde ahí.
 
-Un humano revisa el receipt y la evidencia. Si aprueba: hace merge de la rama
-`feature/FEAT-042-cotizador-de-vida` (Homero nunca commitea, pushea, ni
-mergea por su cuenta) y luego limpia el worktree:
+Un humano revisa el receipt y la evidencia (commiteando lo que haga falta en
+el camino — Homero nunca commitea, pushea, ni mergea por su cuenta). Si
+aprueba: cambia a la rama base y mergea `feature/FEAT-042-cotizador-de-vida`
+normalmente, como cualquier otra rama:
 
 ```powershell
-git worktree remove ..\.homero-worktrees\mi-repo\FEAT-042
+git checkout main
+git merge feature/FEAT-042-cotizador-de-vida
 ```
 
 ## Agentes y delegación (Claude / Copilot)
@@ -523,11 +532,11 @@ Usa `node scripts/homero/homero.mjs <comando> --help` para ver los argumentos di
 
 | Comando | Uso |
 | --- | --- |
-| `homero feature create` | Crea el worktree, la rama y los artefactos del feature. |
+| `homero feature create` | Hace `git checkout -b` en el mismo directorio y crea los artefactos del feature. |
 | `homero feature check` | Valida que el feature (contrato + plan) esté listo — es el gate del checkpoint. |
 | `homero verify` | Ejecuta lint/typecheck/test/e2e y genera el receipt. |
 
-**Loop de tareas** — dentro del worktree del feature
+**Loop de tareas** — con la rama del feature ya checked out
 
 | Comando | Uso |
 | --- | --- |

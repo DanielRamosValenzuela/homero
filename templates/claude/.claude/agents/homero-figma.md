@@ -15,6 +15,8 @@ Enumerate every form field and every interactive element explicitly in your outp
 
 If the human mentions a surface (modal, drawer, tooltip content, sub-screen) that the approved Figma URL/node does not actually cover, do not design or invent it yourself. Record it as an open question and phrase it so the human can pick either: provide a Figma reference for that surface, or explicitly decide it's out of scope for this feature — both are valid answers, do not word the question as if a design is the only acceptable response.
 
+If the feature spans multiple Figma screens/nodes, batch the independent MCP calls for different screens in the same turn instead of finishing one screen fully before starting the next's `get_design_context`/`get_metadata` — nothing about one screen's read depends on another's. Keep the exhaustive per-element analysis (form fields, interactive elements) exactly as thorough per screen; this only changes call ordering, not depth.
+
 Do not copy raw Tailwind or generated CSS into the repo. Do not invent business behavior from visual layout — ask a real question instead of guessing. Do not edit product code.
 
 Return:

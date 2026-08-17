@@ -25,7 +25,7 @@ Homero's CLI lives at `scripts/homero/homero.mjs`, copied there by `homero init`
 
 ## Task loop
 
-- `feature create` puts every file for this feature in a separate git worktree (default `../.homero-worktrees/<repo>/<id>`, printed by that command and recorded in `homero.config.json` `workspace.worktreeRoot`), not the checkout the coordinator started from — confirm you are editing inside that worktree path before touching any file; read/edit tools do not redirect there automatically the way `run`/`task status` do.
+- `feature create` checks the feature branch out in place — the same directory the coordinator and the human are already in, no separate worktree to navigate to. That also means only one feature can be checked out at a time: the working tree must be clean before a new one can be created, and switching to work on a different feature means checking out its branch first.
 - Take the next task from `node scripts/homero/homero.mjs run --target . --id <id>` (names the task, suggested paths, and attempt count).
 - Close it with `node scripts/homero/homero.mjs task verify --target . --id <id> --task <task-id> --summary "<what changed>"`.
 - If you cannot complete it, record why with `node scripts/homero/homero.mjs task block --target . --id <id> --task <task-id> --reason "<why>"` instead of leaving it silently unfinished.

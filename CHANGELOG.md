@@ -5,6 +5,103 @@ explaining version boundaries that change `homero upgrade`'s behavior, not a
 full history of every change. Run `homero version --target .` to see what
 your install is actually on.
 
+## 0.11.0
+
+- **Breaking: `homero feature create` no longer uses a git worktree.** It
+  now runs `git checkout -b <branch>` in place — the same directory you're
+  already in — instead of creating a separate sibling directory. Deliberate
+  trade-off: `specs/<id>/plan.md` is now immediately visible in the editor
+  you already have open (previously it was tucked away in
+  `../.homero-worktrees/<repo>/<id>`, easy to lose track of), at the cost of
+  losing worktree isolation — **only one feature can be checked out at a
+  time**. Create a second feature while the first has uncommitted changes,
+  and `feature create` blocks on the clean-working-tree check exactly like
+  it always did for `homero.config.json`'s dirty-tree guard; commit (or
+  stash) first. To resume a feature from a different session, check out its
+  branch (`git checkout feature/<id>-<slug>`) before running Homero commands
+  for it — there's no more automatic worktree lookup.
+- `workspace.worktreeRoot` removed from `homero.config.json` — no longer
+  used. `homero-implementer`'s instructions (both clients) and
+  `docs/homero/verification.md` updated to match: no more "confirm you're
+  editing inside the worktree path," since there isn't one.
+
+## 0.10.0
+
+- **Fix: `homero feature check` had a circular dependency that could block
+  every real feature from ever starting implementation.** It required
+  Playwright CLI evidence (`playwrightEvidenceErrors`) — but evidence can
+  only exist once something has been implemented, and `feature check` is
+  the gate run *before* implementation (`/homero-plan`'s final check,
+  `/homero-implement`'s precheck, `README`'s documented step 2). A
+  plan-complete feature with zero code could never pass it, and no
+  self-test ever caught this because the suite always pre-wrote fake
+  evidence before calling `feature check`, never exercising the real
+  "nothing implemented yet" case. `feature check` now only checks
+  `featureErrors`/`planErrors` (matching what `homero run`'s own internal
+  gate already checked, correctly, all along) — the same gate everywhere it
+  runs. Evidence is still required, just where it actually belongs: `homero
+  verify`'s gate, unchanged.
+
+## 0.9.2
+
+- **Speed: `homero-discovery` moved from the mid tier to the cheapest
+  tier** (`sonnet` → `haiku`; `GPT-5.6 Terra` → `GPT-5.6 Luna`). It reads
+  and reports, it doesn't decide — the same tier `homero-contracts` was
+  already on. Only affects new installs/upgrades that pick up the template
+  default; an already-configured repo's own `homero.config.json` value is
+  untouched. The default model-pin set now maps cleanly to three tiers by
+  what each role actually does: explore/cheapest (discovery, contracts),
+  execute/mid (planner, implementer), think/strongest (figma, reviewer).
+
+## 0.9.1
+
+- **Speed: `homero-figma` now batches independent Figma reads across
+  screens.** For a feature spanning multiple screens/nodes, it no longer
+  has to finish one screen's MCP calls before starting the next's — nothing
+  about one screen's read depends on another's. Depth per screen is
+  unchanged (still the same exhaustive per-element analysis).
+
+## 0.9.0
+
+- **Fix: `homero-coordinator` had no `Edit`/`Write` tool, yet was
+  instructed to "write" `spec.md`/`plan.md`.** It had to fall back to
+  `Bash` (heredocs, `node -e`, etc.) to produce structured markdown — the
+  most likely cause of plan.md ending up with a heading `feature check`'s
+  gate didn't recognize, which reads as a missing section and forces an
+  avoidable retry loop. `homero-coordinator` (Claude and Copilot) now has
+  `Edit`/`Write`, scoped explicitly to `specs/<id>/spec.md` and
+  `specs/<id>/plan.md` only — implementation files stay exclusive to
+  `homero-implementer`, unchanged. New instruction: fill in the existing
+  template sections in place, keep headings byte-for-byte, never regenerate
+  the file from scratch.
+- **Speed: `homero-figma` and `homero-contracts` now run in parallel**
+  instead of sequentially. Both are required before `homero feature create`
+  can run (it needs `--contract-mode` and a confirmed Figma node), and
+  neither depends on the other's output — contracts needs contract
+  mode/source/mock strategy, not exact Tomaco props or pixel detail.
+  `homero-planner` still waits for both plus the created `feature.json`,
+  since that dependency is real.
+
+## 0.8.0
+
+- **Fix: agents now default to Spanish when talking to the human.** Nothing
+  in any template said what language to answer in, so a Spanish-speaking
+  team could get English responses depending on session drift.
+  `homero-coordinator` (Claude and Copilot), `AGENTS.md`, and
+  `copilot-instructions.md` now say explicitly: Spanish by default (code and
+  technical terms stay in English as normal), switching to whatever language
+  the human actually writes in.
+- **Fix: discover no longer asks for/analyzes a specific screen's Figma
+  link.** `figmaSource` was a vague "Figma source of truth" question that
+  read as "give me a URL to look at now" — during a phase that has no
+  concrete screen yet. It's now explicitly scoped as a project-wide
+  workspace/team convention at most (TBD is a fine answer), and
+  `/homero-discover` (both clients) is told not to open, fetch, or analyze
+  Figma content during discovery — that only happens per feature in
+  `/homero-plan`, where reading it via MCP or human-pasted screenshots
+  actually makes sense. `docs/homero/business.md`'s generated checklist
+  heading also no longer collides with the `discover` command name.
+
 ## 0.7.0
 
 - **Fix: `homero discover` no longer silently locks every repo to pnpm.**

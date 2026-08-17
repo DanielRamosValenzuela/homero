@@ -53,10 +53,10 @@ fewer, more deterministic pieces instead. Real lifecycle, phase by phase:
   is nothing to run separately.
 - **specify / plan / tasks** → not three commands. `homero feature create`
   copies `specs/_template/{spec,plan,tasks}.md` into `specs/<id>-<slug>/` in
-  one step, git-worktree-isolated on a feature branch. Filling those three
-  files in is a human/agent editing task (`homero-discovery` and
-  `homero-planner` in `docs/homero/agent-roles.md`), not something the CLI
-  generates content for.
+  one step, checking out a feature branch in place (no worktree — see the
+  0.11.0 CHANGELOG entry for why that changed). Filling those three files in
+  is a human/agent editing task (`homero-discovery` and `homero-planner` in
+  `docs/homero/agent-roles.md`), not something the CLI generates content for.
 - **implement** → `homero task add` to record tasks, then `homero run` /
   `homero task verify` / `homero task block` to drive the deterministic task
   loop in `features/<id>/state.json` (iteration/attempt limits, phase
@@ -190,7 +190,7 @@ What's still genuinely rough:
   automated checks of the judgment it claims to enforce.
 - **The claude/both client paths still have deeper coverage than copilot-only.**
   `scripts/self-test.mjs` exercises the full feature/task-loop/verify lifecycle
-  (worktrees, task states, receipts) only against a `--client both` install; the
+  (branch checkout, task states, receipts) only against a `--client both` install; the
   isolated `--client copilot` coverage is narrower (init/validate/`generate
   catalog`/`upgrade`, not the full feature loop). It's the source of truth for
   exactly what's covered right now — check it before assuming a given

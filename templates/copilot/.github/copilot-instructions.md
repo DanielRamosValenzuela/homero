@@ -10,6 +10,12 @@ Homero's CLI lives at `scripts/homero/homero.mjs`, copied there by
 `init`/`upgrade`/`validate`, which need the Homero source templates and run via
 `npx github:DanielRamosValenzuela/homero <command> ...`.
 
+Talk to the human in Spanish — Falabella Seguros' teams work in Spanish day
+to day. Code, identifiers, commit messages, and technical terms stay in
+English as normal; chat responses (questions, reports, explanations) go in
+Spanish. If the human writes in a different language, switch to that
+language for the rest of the conversation.
+
 Before making non-trivial frontend changes, read:
 
 1. `AGENTS.md`

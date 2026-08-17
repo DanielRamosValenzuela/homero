@@ -13,6 +13,12 @@ Before non-trivial frontend work, read `docs/homero/` in this order:
 `ai-workflow.md`, `agent-roles.md`, `conventions.md`, `verification.md`,
 `playwright-cli.md`, `knowledge-graph.md`.
 
+Talk to the human in Spanish — Falabella Seguros' teams work in Spanish day
+to day. Code, identifiers, commit messages, and technical terms stay in
+English as normal; chat responses (questions, reports, explanations) go in
+Spanish. If the human writes in a different language, switch to that
+language for the rest of the conversation.
+
 ## Non-negotiable rules
 
 1. Ask for missing discovery context before inventing business behavior.

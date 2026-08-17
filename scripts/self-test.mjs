@@ -233,6 +233,10 @@ run(["generate", "form", "--target", targetRoot, "--name", "UserInfoForm", "--co
 runGit(["init"]);
 runGit(["add", "."]);
 runGit(["-c", "user.name=Homero Test", "-c", "user.email=homero@example.test", "commit", "-m", "chore: install homero"]);
+// No worktree: `feature create` now checks the feature branch out in targetRoot itself.
+// Capture the base branch so later features in this same targetRoot (FEAT-002) can be
+// created from a clean base instead of stacking on the previous feature's tip.
+const baseBranch = spawnSync("git", ["branch", "--show-current"], { cwd: targetRoot, encoding: "utf8" }).stdout.trim();
 run([
   "feature",
   "create",
@@ -247,8 +251,8 @@ run([
 ]);
 runExpectFailure(["feature", "check", "--target", targetRoot, "--id", "FEAT-001"]);
 
-const featureWorktree = path.join(path.resolve(targetRoot, "../.homero-worktrees"), path.basename(targetRoot), "FEAT-001");
-const featureDir = path.join(featureWorktree, "features", "FEAT-001");
+// No worktree: the feature branch is targetRoot itself, checked out in place.
+const featureDir = path.join(targetRoot, "features", "FEAT-001");
 const generatedForm = path.join(targetRoot, "src", "ui", "cl", "UserInfoForm", "index.tsx");
 const generatedConstitution = path.join(targetRoot, "docs", "homero", "constitution.md");
 const generatedContracts = path.join(targetRoot, "docs", "homero", "contracts.md");
@@ -256,9 +260,9 @@ const generatedWorkflow = path.join(targetRoot, "docs", "homero", "ai-workflow.m
 const generatedCopilotAgent = path.join(targetRoot, ".github", "agents", "homero-coordinator.agent.md");
 const generatedClaudeAgent = path.join(targetRoot, ".claude", "agents", "homero-coordinator.md");
 const featurePath = path.join(featureDir, "feature.json");
-const featureSpecDir = path.join(featureWorktree, "specs", `FEAT-001-${slugify("Quote form")}`);
+const featureSpecDir = path.join(targetRoot, "specs", `FEAT-001-${slugify("Quote form")}`);
 const playwrightEvidencePath = path.join(featureDir, "evidence", "playwright-cli.json");
-const featureConfigPath = path.join(featureWorktree, "homero.config.json");
+const featureConfigPath = path.join(targetRoot, "homero.config.json");
 const config = JSON.parse(fs.readFileSync(path.join(targetRoot, "homero.config.json"), "utf8"));
 
 const createdFeature = JSON.parse(fs.readFileSync(featurePath, "utf8"));
@@ -314,8 +318,8 @@ feature.requirements.acceptanceCriteria = ["The user can submit a valid quote fo
 feature.requirements.uiStates = ["loading", "success", "empty", "email already quoted this month", "server timeout"];
 feature.contracts.mocks.registered = true;
 feature.contracts.mocks.source = "src/mocks/quote.ts";
-fs.mkdirSync(path.join(featureWorktree, "src", "mocks"), { recursive: true });
-fs.writeFileSync(path.join(featureWorktree, "src", "mocks", "quote.ts"), "export const quoteMock = {};\n", "utf8");
+fs.mkdirSync(path.join(targetRoot, "src", "mocks"), { recursive: true });
+fs.writeFileSync(path.join(targetRoot, "src", "mocks", "quote.ts"), "export const quoteMock = {};\n", "utf8");
 
 const evidence = JSON.parse(fs.readFileSync(playwrightEvidencePath, "utf8"));
 fs.mkdirSync(path.join(featureDir, "evidence", "screenshots"), { recursive: true });
@@ -362,6 +366,19 @@ fs.writeFileSync(featurePath, `${JSON.stringify(feature, null, 2)}\n`, "utf8");
 runExpectFailure(["feature", "check", "--target", targetRoot, "--id", "FEAT-001"]);
 
 fillRequiredPlanSections(featureSpecDir);
+
+// --- Regression test: `feature check` must NOT require Playwright evidence — that's
+// verify's job, after implementation exists. Requiring it here was a circular dependency
+// (feature check gates the start of implementation, but evidence can only be captured by
+// implementing first) that would have blocked every plan-complete feature from ever
+// starting work, and this suite had never actually exercised the "no evidence yet" case —
+// evidence.scenarios was always pre-filled above before any `feature check` call.
+const evidenceBeforeCapture = JSON.parse(fs.readFileSync(playwrightEvidencePath, "utf8"));
+fs.writeFileSync(playwrightEvidencePath, `${JSON.stringify({ ...evidenceBeforeCapture, scenarios: [] }, null, 2)}\n`, "utf8");
+run(["feature", "check", "--target", targetRoot, "--id", "FEAT-001"]);
+runExpectFailure(["verify", "--target", targetRoot, "--id", "FEAT-001"]);
+fs.writeFileSync(playwrightEvidencePath, `${JSON.stringify(evidenceBeforeCapture, null, 2)}\n`, "utf8");
+
 run(["feature", "check", "--target", targetRoot, "--id", "FEAT-001"]);
 run(["verify", "--target", targetRoot, "--id", "FEAT-001"]);
 
@@ -371,15 +388,10 @@ if (!fs.existsSync(receiptsDir) || fs.readdirSync(receiptsDir).length === 0) {
   process.exit(1);
 }
 
-const featureBranch = spawnSync("git", ["branch", "--show-current"], { cwd: featureWorktree, encoding: "utf8" }).stdout.trim();
+// No worktree: targetRoot itself should now be sitting on the feature branch.
+const featureBranch = spawnSync("git", ["branch", "--show-current"], { cwd: targetRoot, encoding: "utf8" }).stdout.trim();
 if (featureBranch !== "feature/FEAT-001-quote-form") {
-  console.error(`Expected feature worktree branch, received: ${featureBranch}`);
-  process.exit(1);
-}
-
-const mainBranch = spawnSync("git", ["branch", "--show-current"], { cwd: targetRoot, encoding: "utf8" }).stdout.trim();
-if (mainBranch === "feature/FEAT-001-quote-form") {
-  console.error("Expected the main checkout to stay off the feature branch");
+  console.error(`Expected targetRoot to be checked out on the feature branch, got: ${featureBranch}`);
   process.exit(1);
 }
 
@@ -560,6 +572,14 @@ if (state.verifyAttempts !== 2) {
   console.error(`Expected a 3rd verify call to stay blocked without incrementing further, got verifyAttempts=${state.verifyAttempts}`);
   process.exit(1);
 }
+
+// No worktree: FEAT-002 (below) needs a clean tree in this same targetRoot before it can be
+// created — the real trade-off of dropping worktree isolation is one feature checked out at
+// a time. Commit FEAT-001's work, same as a human eventually would, then switch back to the
+// base branch so FEAT-002 branches from a clean starting point instead of stacking on FEAT-001.
+runGit(["add", "-A"]);
+runGit(["-c", "user.name=Homero Test", "-c", "user.email=homero@example.test", "commit", "-m", "wip: FEAT-001 self-test artifacts"]);
+runGit(["checkout", baseBranch]);
 
 // --- Single-adapter install: recorded client, upgrade, catalog ---
 // A second target repo, installed with one adapter, because the behavior these assertions
@@ -797,11 +817,11 @@ run([
   "--countries", "cl"
 ]);
 
-const phaseFeatureWorktree = path.join(path.resolve(targetRoot, "../.homero-worktrees"), path.basename(targetRoot), "FEAT-002");
-const phaseFeatureDir = path.join(phaseFeatureWorktree, "features", "FEAT-002");
+// No worktree: FEAT-002 is checked out in targetRoot itself, same as FEAT-001 was.
+const phaseFeatureDir = path.join(targetRoot, "features", "FEAT-002");
 const phaseFeaturePath = path.join(phaseFeatureDir, "feature.json");
-const phaseFeatureSpecDir = path.join(phaseFeatureWorktree, "specs", `FEAT-002-${slugify("Phase transitions")}`);
-const phaseFeatureConfigPath = path.join(phaseFeatureWorktree, "homero.config.json");
+const phaseFeatureSpecDir = path.join(targetRoot, "specs", `FEAT-002-${slugify("Phase transitions")}`);
+const phaseFeatureConfigPath = path.join(targetRoot, "homero.config.json");
 const phaseEvidencePath = path.join(phaseFeatureDir, "evidence", "playwright-cli.json");
 
 function readPhaseState() {
@@ -816,8 +836,8 @@ phaseFeature.requirements.acceptanceCriteria = ["The user can see phase transiti
 phaseFeature.requirements.uiStates = ["loading", "success", "no transitions to show"];
 phaseFeature.contracts.mocks.registered = true;
 phaseFeature.contracts.mocks.source = "src/mocks/phases.ts";
-fs.mkdirSync(path.join(phaseFeatureWorktree, "src", "mocks"), { recursive: true });
-fs.writeFileSync(path.join(phaseFeatureWorktree, "src", "mocks", "phases.ts"), "export const phasesMock = {};\n", "utf8");
+fs.mkdirSync(path.join(targetRoot, "src", "mocks"), { recursive: true });
+fs.writeFileSync(path.join(targetRoot, "src", "mocks", "phases.ts"), "export const phasesMock = {};\n", "utf8");
 fs.writeFileSync(phaseFeaturePath, `${JSON.stringify(phaseFeature, null, 2)}\n`, "utf8");
 fillRequiredPlanSections(phaseFeatureSpecDir);
 
@@ -931,11 +951,11 @@ run([
   "--countries", "cl"
 ], { cliPath: copilotCliPath });
 
-const copilotFeatureWorktree = path.join(path.resolve(copilotClientRoot, "../.homero-worktrees"), path.basename(copilotClientRoot), "FEAT-900");
-const copilotFeatureDir = path.join(copilotFeatureWorktree, "features", "FEAT-900");
+// No worktree: FEAT-900 is checked out in copilotClientRoot itself.
+const copilotFeatureDir = path.join(copilotClientRoot, "features", "FEAT-900");
 const copilotFeaturePath = path.join(copilotFeatureDir, "feature.json");
-const copilotFeatureSpecDir = path.join(copilotFeatureWorktree, "specs", `FEAT-900-${slugify("Copilot-only lifecycle")}`);
-const copilotFeatureConfigPath = path.join(copilotFeatureWorktree, "homero.config.json");
+const copilotFeatureSpecDir = path.join(copilotClientRoot, "specs", `FEAT-900-${slugify("Copilot-only lifecycle")}`);
+const copilotFeatureConfigPath = path.join(copilotClientRoot, "homero.config.json");
 const copilotEvidencePath = path.join(copilotFeatureDir, "evidence", "playwright-cli.json");
 
 const copilotFeature = JSON.parse(fs.readFileSync(copilotFeaturePath, "utf8"));
@@ -944,8 +964,8 @@ copilotFeature.requirements.acceptanceCriteria = ["The user can complete the cop
 copilotFeature.requirements.uiStates = ["loading", "success", "copilot-only edge case"];
 copilotFeature.contracts.mocks.registered = true;
 copilotFeature.contracts.mocks.source = "src/mocks/copilot.ts";
-fs.mkdirSync(path.join(copilotFeatureWorktree, "src", "mocks"), { recursive: true });
-fs.writeFileSync(path.join(copilotFeatureWorktree, "src", "mocks", "copilot.ts"), "export const copilotMock = {};\n", "utf8");
+fs.mkdirSync(path.join(copilotClientRoot, "src", "mocks"), { recursive: true });
+fs.writeFileSync(path.join(copilotClientRoot, "src", "mocks", "copilot.ts"), "export const copilotMock = {};\n", "utf8");
 fs.writeFileSync(copilotFeaturePath, `${JSON.stringify(copilotFeature, null, 2)}\n`, "utf8");
 fillRequiredPlanSections(copilotFeatureSpecDir);
 
@@ -1155,9 +1175,22 @@ run([
   "--countries", "cl"
 ], { cliPath: monorepoAppCliPath });
 
-const expectedMonorepoWorktree = path.join(monorepoRoot, "apps", ".homero-worktrees", "web", "FEAT-M01");
-if (!fs.existsSync(path.join(expectedMonorepoWorktree, "features", "FEAT-M01", "feature.json"))) {
-  console.error(`Expected the monorepo feature worktree at ${expectedMonorepoWorktree}, resolved relative to the app folder, not the monorepo root`);
+// No worktree: feature artifacts land directly under --target (the app folder), not the
+// monorepo root, and the branch itself is repo-wide (git doesn't scope branches to
+// subdirectories) even though `--target` scopes where Homero writes files.
+if (!fs.existsSync(path.join(monorepoAppRoot, "features", "FEAT-M01", "feature.json"))) {
+  console.error(`Expected the monorepo feature at ${monorepoAppRoot}/features/FEAT-M01, resolved relative to the app folder, not the monorepo root`);
+  process.exit(1);
+}
+
+if (fs.existsSync(path.join(monorepoRoot, "features", "FEAT-M01"))) {
+  console.error("Expected feature artifacts to NOT be written at the monorepo root");
+  process.exit(1);
+}
+
+const monorepoBranch = spawnSync("git", ["branch", "--show-current"], { cwd: monorepoRoot, encoding: "utf8" }).stdout.trim();
+if (monorepoBranch !== "feature/FEAT-M01-monorepo-feature") {
+  console.error(`Expected the monorepo repo to be checked out on the feature branch (checkout runs repo-wide even with --target pointing at a subfolder), got: ${monorepoBranch}`);
   process.exit(1);
 }
 
