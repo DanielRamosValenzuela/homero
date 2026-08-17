@@ -53,8 +53,10 @@ que todo agente Homero lee antes de trabajar:
 
 ## Requisitos
 
-Git, Node.js ≥18, `pnpm`, un repo frontend con `package.json`, y un Figma
-aprobado + contrato de backend (o ejemplos/cURLs) por feature.
+Git, Node.js ≥18, un gestor de paquetes (npm, pnpm o yarn — `discover`
+detecta cuál según el lockfile del repo), un repo frontend con
+`package.json`, y un Figma aprobado + contrato de backend (o ejemplos/cURLs)
+por feature.
 
 ## Instalar
 
@@ -481,8 +483,8 @@ WARN  The tomaco-components catalog was generated against a different version
       than the installed 2.0.0. Run `homero generate catalog --target .`
 ```
 
-El caso típico donde sí lo corrés a mano es después de un `pnpm install`
-inicial (cuando instalaste Homero antes de tener dependencias) o tras un bump
+El caso típico donde sí lo corrés a mano es después de instalar dependencias
+por primera vez (npm/pnpm/yarn install) — si instalaste Homero antes de eso — o tras un bump
 de Tomaco si no vas a correr `upgrade`:
 
 ```powershell

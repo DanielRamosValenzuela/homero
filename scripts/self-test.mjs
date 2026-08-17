@@ -211,6 +211,15 @@ if (stampedConfig.homeroVersion !== homeroVersionConstant || stampedConfig.homer
 activeCliPath = copiedCliPath;
 
 run(["discover", "--target", targetRoot, "--defaults", "--force"]);
+
+// --- Negative-space check: no lockfile in targetRoot yet, so discover must fall back to the
+// documented pnpm default rather than failing or guessing something else ---
+const discoveredRootConfig = JSON.parse(fs.readFileSync(path.join(targetRoot, "homero.config.json"), "utf8"));
+if (discoveredRootConfig.packageManager !== "pnpm" || discoveredRootConfig.commands.lint !== "pnpm lint") {
+  console.error(`Expected discover with no lockfile present to default to pnpm commands, got packageManager=${discoveredRootConfig.packageManager} lint=${discoveredRootConfig.commands.lint}`);
+  process.exit(1);
+}
+
 run(["validate", "--target", targetRoot, "--client", "both"], { cliPath: sourceCliPath });
 runExpectFailure(["validate", "--target", targetRoot, "--client", "both"], { cliPath: copiedCliPath });
 fs.writeFileSync(
@@ -1149,6 +1158,29 @@ run([
 const expectedMonorepoWorktree = path.join(monorepoRoot, "apps", ".homero-worktrees", "web", "FEAT-M01");
 if (!fs.existsSync(path.join(expectedMonorepoWorktree, "features", "FEAT-M01", "feature.json"))) {
   console.error(`Expected the monorepo feature worktree at ${expectedMonorepoWorktree}, resolved relative to the app folder, not the monorepo root`);
+  process.exit(1);
+}
+
+// --- Non-pnpm package manager: discover must detect npm from a real lockfile, not default to
+// pnpm — this is the exact bug where `homero setup playwright` used to hard-reject any repo
+// that wasn't pnpm, and discover had no way to record anything else even if asked ---
+const npmRoot = fs.mkdtempSync(path.join(os.tmpdir(), "homero-self-test-npm-"));
+fs.writeFileSync(path.join(npmRoot, "package.json"), `${JSON.stringify({ name: "npm-project", private: true }, null, 2)}\n`, "utf8");
+fs.writeFileSync(path.join(npmRoot, "package-lock.json"), `${JSON.stringify({ name: "npm-project", lockfileVersion: 3 }, null, 2)}\n`, "utf8");
+
+run(["init", "--target", npmRoot, "--client", "claude", "--project-name", "homero-self-test-npm"], { cliPath: sourceCliPath });
+const npmCliPath = path.join(npmRoot, "scripts", "homero", "homero.mjs");
+run(["discover", "--target", npmRoot, "--defaults", "--force"], { cliPath: npmCliPath });
+
+const npmConfig = JSON.parse(fs.readFileSync(path.join(npmRoot, "homero.config.json"), "utf8"));
+if (npmConfig.packageManager !== "npm" || npmConfig.commands.lint !== "npm run lint" || npmConfig.commands.e2e !== "npx playwright test") {
+  console.error(`Expected discover to detect npm from package-lock.json and default to npm-flavored commands, got ${JSON.stringify({ packageManager: npmConfig.packageManager, commands: npmConfig.commands })}`);
+  process.exit(1);
+}
+
+const npmPlaywrightOutput = runCaptureOutput(["setup", "playwright", "--target", npmRoot, "--dry-run"], { cliPath: npmCliPath });
+if (!npmPlaywrightOutput.includes("npm install") || !npmPlaywrightOutput.includes("npx playwright") || npmPlaywrightOutput.includes("pnpm")) {
+  console.error(`Expected \`setup playwright\` on an npm-configured repo to print npm/npx commands with no pnpm fallback, got:\n${npmPlaywrightOutput}`);
   process.exit(1);
 }
 

@@ -4,7 +4,7 @@
 >
 > `homero init` and `homero upgrade` generate the real inventory automatically when
 > the design-system package is already in `node_modules`. Seeing this text means it
-> was not — most likely Homero was installed before the first `pnpm install`.
+> was not — most likely Homero was installed before the first dependency install (npm/pnpm/yarn install).
 >
 > Generate it now:
 >

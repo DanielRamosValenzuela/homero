@@ -5,6 +5,24 @@ explaining version boundaries that change `homero upgrade`'s behavior, not a
 full history of every change. Run `homero version --target .` to see what
 your install is actually on.
 
+## 0.7.0
+
+- **Fix: `homero discover` no longer silently locks every repo to pnpm.**
+  `homero.config.json`'s `packageManager` and default `commands.lint`/
+  `typecheck`/`test`/`e2e` shipped pnpm-flavored from the init template, and
+  `discover` had no field to change `packageManager` at all — even
+  `--packageManager` was silently discarded by `discoveredConfig()`. An
+  npm or yarn repo got `homero setup playwright` hard-rejecting it
+  ("currently supports repositories configured with pnpm") with no way to
+  fix it short of hand-editing `homero.config.json`. `discover` now detects
+  the real package manager from the repo's lockfile
+  (`pnpm-lock.yaml`/`yarn.lock`/`package-lock.json`) before falling back to
+  pnpm, records it as a real `packageManager` discovery field, and derives
+  npm/yarn/pnpm-flavored command defaults accordingly. `homero setup
+  playwright` now installs and configures Playwright for whichever package
+  manager the repo actually uses. Only affects new `discover` runs — an
+  already-discovered repo's recorded values are untouched by `upgrade`.
+
 ## 0.6.0
 
 - **New required template files**: `.claude/commands/homero-review-plan.md`

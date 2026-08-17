@@ -28,7 +28,7 @@ const repoRoot = path.resolve(currentDir, "../../..");
 // scripts/homero/homero.mjs. `homero upgrade` compares it against the installed
 // homeroVersion to decide what to refresh. Kept in lockstep with package.json by
 // scripts/self-test.mjs — bump both together.
-const homeroVersion = "0.6.0";
+const homeroVersion = "0.7.0";
 
 function readArg(name) {
   const index = commandArgs.indexOf(name);
@@ -347,13 +347,56 @@ function writeDiscoveredDoc(targetRoot, relativePath, content, force) {
   console.log(`WRITE ${destinationPath}`);
 }
 
+// Sniffs the real lockfile before trusting the init-time template default (`pnpm`) — a repo
+// that already has a package-lock.json/yarn.lock is unambiguous ground truth, the same
+// "read the real repo instead of guessing" philosophy as generate catalog reading the
+// installed package instead of memory.
+function detectPackageManager(targetRoot, config) {
+  if (fs.existsSync(path.join(targetRoot, "pnpm-lock.yaml"))) {
+    return "pnpm";
+  }
+
+  if (fs.existsSync(path.join(targetRoot, "yarn.lock"))) {
+    return "yarn";
+  }
+
+  if (fs.existsSync(path.join(targetRoot, "package-lock.json"))) {
+    return "npm";
+  }
+
+  return config.packageManager || "pnpm";
+}
+
+function defaultCommandsForPackageManager(packageManager) {
+  switch (packageManager) {
+    case "npm":
+      return { lint: "npm run lint", typecheck: "npx tsc --noEmit", test: "npm test", e2e: "npx playwright test" };
+    case "yarn":
+      return { lint: "yarn lint", typecheck: "yarn tsc --noEmit", test: "yarn test", e2e: "yarn playwright test" };
+    case "pnpm":
+    default:
+      return { lint: "pnpm lint", typecheck: "pnpm exec tsc --noEmit", test: "pnpm test", e2e: "pnpm exec playwright test" };
+  }
+}
+
 function discoveryDefaults(targetRoot, config) {
+  const packageManager = detectPackageManager(targetRoot, config);
+  const defaultCommands = defaultCommandsForPackageManager(packageManager);
+  // The init-time template always ships pnpm-flavored commands.lint/etc, even in a repo
+  // discover just detected as npm/yarn — so "config.commands.lint is set" doesn't mean a
+  // human chose it. Only treat it as a real override if it differs from that untouched
+  // template value; otherwise defer to the detected package manager's own default.
+  const templateCommands = defaultCommandsForPackageManager("pnpm");
+  const commandOrDefault = (configured, key) =>
+    configured && configured !== templateCommands[key] ? configured : defaultCommands[key];
+
   return {
     projectName: projectNameFromConfig(targetRoot, config),
     projectStatus: "existing frontend repo",
     monorepo: config.discovery?.monorepo || "no",
     framework: "Next.js App Router",
     runtime: "Node.js",
+    packageManager,
     formStack: "React Hook Form + Zod",
     designSystem: "Tomaco",
     designSystemPackage: config.product?.designSystemPackage || "tomaco-components",
@@ -379,10 +422,10 @@ function discoveryDefaults(targetRoot, config) {
     businessGoal: "TBD",
     successState: "TBD",
     stakeholders: "TBD",
-    lintCommand: config.commands?.lint || "pnpm lint",
-    typecheckCommand: config.commands?.typecheck || "pnpm exec tsc --noEmit",
-    testCommand: config.commands?.test || "pnpm test",
-    e2eCommand: config.commands?.e2e || "pnpm exec playwright test"
+    lintCommand: commandOrDefault(config.commands?.lint, "lint"),
+    typecheckCommand: commandOrDefault(config.commands?.typecheck, "typecheck"),
+    testCommand: commandOrDefault(config.commands?.test, "test"),
+    e2eCommand: commandOrDefault(config.commands?.e2e, "e2e")
   };
 }
 
@@ -392,6 +435,7 @@ const discoveryFields = [
   ["monorepo", "Is this repo a monorepo? If yes, run `homero init`/`discover` again per app with --target pointing at that app's folder (e.g. apps/web), not the workspace root"],
   ["framework", "Framework/runtime stack"],
   ["runtime", "Runtime"],
+  ["packageManager", "Package manager: npm, pnpm, or yarn — detected from the repo's lockfile when present, ask only if none exists yet"],
   ["formStack", "Form stack"],
   ["designSystem", "Design system"],
   ["designSystemPackage", "Design system npm package specifier, as imported in code (e.g. tomaco-components)"],
@@ -717,7 +761,7 @@ function discoveredConfig(config, answers) {
   return {
     ...config,
     projectName: answers.projectName,
-    packageManager: config.packageManager || "pnpm",
+    packageManager: answers.packageManager,
     lintGuardrail: answers.lintGuardrail,
     commands: {
       ...config.commands,
@@ -1962,6 +2006,45 @@ function task() {
   fail(`Unknown task command: ${taskCommand || "<missing>"}`);
 }
 
+const packageManagerInstallHints = {
+  npm: "https://nodejs.org/en/download (npm ships with Node.js)",
+  pnpm: "https://pnpm.io/installation",
+  yarn: "https://yarnpkg.com/getting-started/install"
+};
+
+function playwrightSetupCommands(packageManager) {
+  switch (packageManager) {
+    case "npm":
+      return {
+        install: [
+          ["npm", ["install", "-D", "@playwright/test", "@playwright/cli", "@axe-core/playwright"]],
+          ["npx", ["playwright", "install", "chromium"]]
+        ],
+        cliCommand: "npx playwright-cli",
+        testCommand: "npx playwright test"
+      };
+    case "yarn":
+      return {
+        install: [
+          ["yarn", ["add", "-D", "@playwright/test", "@playwright/cli", "@axe-core/playwright"]],
+          ["yarn", ["playwright", "install", "chromium"]]
+        ],
+        cliCommand: "yarn playwright-cli",
+        testCommand: "yarn playwright test"
+      };
+    case "pnpm":
+    default:
+      return {
+        install: [
+          ["pnpm", ["add", "-D", "@playwright/test", "@playwright/cli", "@axe-core/playwright"]],
+          ["pnpm", ["exec", "playwright", "install", "chromium"]]
+        ],
+        cliCommand: "pnpm exec playwright-cli",
+        testCommand: "pnpm exec playwright test"
+      };
+  }
+}
+
 function setupPlaywright() {
   const targetArg = readArg("--target");
   const dryRun = hasFlag("--dry-run");
@@ -1984,21 +2067,26 @@ function setupPlaywright() {
   }
 
   const config = readConfig(targetRoot);
-  if ((config.packageManager || "pnpm") !== "pnpm") {
-    fail("homero setup playwright currently supports repositories configured with pnpm.");
+  const packageManager = config.packageManager || "pnpm";
+
+  if (!["npm", "pnpm", "yarn"].includes(packageManager)) {
+    fail(
+      `homero setup playwright doesn't recognize packageManager "${packageManager}" in homero.config.json ` +
+        "— expected npm, pnpm, or yarn. Fix it there (or re-run `homero discover`) and try again."
+    );
   }
 
-  const commands = [
-    ["pnpm", ["add", "-D", "@playwright/test", "@playwright/cli", "@axe-core/playwright"]],
-    ["pnpm", ["exec", "playwright", "install", "chromium"]]
-  ];
+  const { install: commands, cliCommand, testCommand } = playwrightSetupCommands(packageManager);
 
-  // Without this, a missing pnpm binary surfaced as a generic "Playwright setup failed while
-  // running: pnpm add ..." with no hint that pnpm itself, not the install, was the problem.
-  if (!dryRun && !commandAvailable("pnpm")) {
+  // Without this, a missing package-manager binary surfaced as a generic "Playwright setup
+  // failed while running: <pm> add ..." with no hint that the binary itself, not the install,
+  // was the problem.
+  if (!dryRun && !commandAvailable(packageManager)) {
     fail(
-      "homero setup playwright requires `pnpm` on PATH. Install it (https://pnpm.io/installation) " +
-        "or, on Node >=16.9, run `corepack enable` — then try again."
+      `homero setup playwright requires \`${packageManager}\` on PATH (from homero.config.json's ` +
+        `packageManager). Install it (${packageManagerInstallHints[packageManager]})` +
+        (packageManager === "npm" ? "" : " or, on Node >=16.9, run `corepack enable`") +
+        " — then try again."
     );
   }
 
@@ -2022,13 +2110,13 @@ function setupPlaywright() {
 
   config.commands = {
     ...config.commands,
-    e2e: "pnpm exec playwright test"
+    e2e: testCommand
   };
   config.playwright = {
     ...config.playwright,
-    cliCommand: "pnpm exec playwright-cli",
+    cliCommand,
     browser: "chromium",
-    testCommand: "pnpm exec playwright test"
+    testCommand
   };
   writeJsonFile(configPath, config);
 
@@ -2284,7 +2372,8 @@ function init() {
 
   // Best-effort: if the repo already ran its package manager, the agent gets the real
   // component inventory from minute one instead of the "NOT GENERATED YET" placeholder.
-  // Silent when the package is not there — installing before `pnpm install` is normal.
+  // Silent when the package is not there — installing before running the package manager's
+  // install step (npm/pnpm/yarn) is normal.
   refreshCatalogQuietly(targetRoot);
 
   console.log("");
@@ -2551,7 +2640,8 @@ function generateCatalog() {
 // manager yet must still install and upgrade cleanly.
 //
 // quiet mode is for the init/upgrade path, where a "not installed" notice would be noise
-// in a 40-line install log — the user has not even run pnpm install at that point.
+// in a 40-line install log — the user has not even run their package manager's install step
+// (npm/pnpm/yarn) at that point.
 function writeCatalog(targetRoot, specifier, { quiet }) {
   const client = readConfig(targetRoot).homeroClient || "both";
   const outputPaths = catalogOutputPaths(targetRoot, client);

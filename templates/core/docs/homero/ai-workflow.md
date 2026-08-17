@@ -53,15 +53,19 @@ large parts of the codebase, use `graphify` instead of a broad file-by-file read
 
 Run this yourself, in chat — never tell the human to open a terminal.
 `homero discover` accepts every question as a flag (e.g. `--framework`,
-`--formStack`, `--countries`, `--contractMode`; run `homero discover --help`
-for the full list) and falls back to sane defaults for anything you omit if
-you pass `--defaults`. Ask the human only the handful of questions that
-actually vary per repo — framework, form stack, design system package,
-countries, contract mode/source, test commands — as normal chat messages,
-then run discovery yourself with what you learned:
+`--formStack`, `--countries`, `--contractMode`, `--packageManager`; run
+`homero discover --help` for the full list) and falls back to sane defaults
+for anything you omit if you pass `--defaults`. Ask the human only the
+handful of questions that actually vary per repo — framework, form stack,
+design system package, countries, contract mode/source, test commands — as
+normal chat messages, then run discovery yourself with what you learned.
+Package manager is the one field you should not ask blind: check the repo
+for `pnpm-lock.yaml`/`yarn.lock`/`package-lock.json` first (the CLI does
+this too when `--packageManager` is omitted) and only ask if none exists —
+the default is pnpm, but plenty of repos aren't:
 
 ```
-node scripts/homero/homero.mjs discover --target . --framework "Next.js 14" --formStack "React Hook Form + Zod" --countries "cl,pe" --defaults
+node scripts/homero/homero.mjs discover --target . --framework "Next.js 14" --formStack "React Hook Form + Zod" --countries "cl,pe" --packageManager "npm" --defaults
 ```
 
 Skip this phase entirely once `homero.config.json` already looks discovered
