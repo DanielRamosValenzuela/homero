@@ -157,6 +157,15 @@ a nivel de repo u organización (**Settings → Copilot → Coding agent → MCP
 servers**); es una superficie distinta de `.mcp.json`, que solo sirve para
 uso local/Claude.
 
+`mcp.example.json` también trae `tomaco-mcp-server` documentado como entrada
+**opcional y deshabilitada por default** (`tomaco-mcp-server-disabled`) —
+validación en vivo de componentes/props/clases CSS de Tomaco, mantenido por
+el equipo de design system, no por Homero. Confirmá con ese equipo si está
+desplegado para tu organización antes de habilitarlo (necesita
+`NPM_REGISTRY_TOKEN` salvo que `tomaco-components` ya esté instalado
+localmente); si no lo tenés, la skill `tomaco-design-system` sigue
+funcionando igual con las referencias estáticas.
+
 ```powershell
 node scripts/homero/homero.mjs setup playwright --target .
 ```
@@ -451,6 +460,17 @@ compilan pero no hacen nada en runtime. Ninguna de esas trampas sale en el
 inventario generado (que solo trae nombre/descripción/keywords) ni en los
 tipos de TypeScript — hay que releerlo y actualizarlo a mano si el equipo
 sube de versión Tomaco.
+
+Un tercer archivo, `references/css-utilities.md`
+(`.github/instructions/tomaco-css-utilities.md` en Copilot), es el catálogo
+positivo de clases CSS, grilla y tokens de color — verificado contra el Sass
+real (`grid.sass`, `variables.sass`, `helpers.sass`) del propio
+`tomaco-components`, no solo contra patrones. Ahí quedan documentados dos
+overrides de Tomaco que no coinciden con Bootstrap estándar: los containers
+topan en `1152px` a partir de `lg` (no siguen creciendo en `xl`/`xxl`), y el
+gutter default de `.row` es `32px`, no `24px`. Tampoco se genera — igual que
+`component-gotchas.md`, hay que releerlo si Tomaco cambia su grilla o sus
+tokens.
 
 **No hace falta que lo corras a mano.** `init` y `upgrade` lo generan solos si
 `node_modules` ya tiene el paquete, y `validate` te avisa cuando falta o quedó
