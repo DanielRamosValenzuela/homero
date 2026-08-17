@@ -18,7 +18,7 @@ Homero's CLI lives at `scripts/homero/homero.mjs`, copied there by
 6. Mocks must be realistic, anonymized, traceable to a contract source or recorded assumption, and development-only.
 7. Feature work must start with `homero feature create`, creating a local branch, contract, spec, plan, task list, Playwright CLI evidence, and verification receipt.
 8. The AI agent must ask about blocking ambiguity before implementing.
-9. The AI agent should implement without extra confirmation when the feature gate passes.
+9. The AI agent must pause once the plan (`specs/<id>/spec.md`, `specs/<id>/plan.md`) passes `homero feature check`, and report it to the human for review, before starting implementation — a passing gate proves the plan is complete, not that a human approved it. The only exception is when the human's own request explicitly asked for uninterrupted end-to-end execution (e.g. "implementa todo sin pausar"); short of that, implementing straight through the plan checkpoint is not "efficiency," it is the exact gap this principle exists to close. Once implementation has actually started, it proceeds without further pauses except for a real blocking ambiguity or a verification failure that needs a human decision.
 10. Verification commands in `homero.config.json` are part of the definition of done.
 11. Only humans may commit, push, open pull requests, merge, or modify Figma.
 12. Features must record which countries they target in `feature.json`. Keep country-specific business rules, copy, and validation messages isolated from shared logic so adding a country does not require rewriting shared code.
@@ -46,3 +46,4 @@ A feature plan or implementation should be rejected if it:
 - builds a component that duplicates one `tomaco-components` already ships instead of reusing or composing it
 - implements a referenced surface (modal, drawer, tooltip content, sub-screen) that has no approved Figma source instead of asking whether to source one or skip it
 - leaves plan.md's Tomaco components/tokens or pixel-perfect styling sections empty instead of naming exact components, tokens, paddings, and layout
+- starts implementation the moment the plan passes `feature check`, without giving the human a chance to review it, when the human never asked for uninterrupted end-to-end execution

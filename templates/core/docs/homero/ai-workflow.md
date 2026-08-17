@@ -11,12 +11,30 @@ agent should move through these phases in order:
 discover -> specify -> plan -> tasks -> implement -> verify -> converge
 ```
 
-These are conceptual phases the agent moves through in one continuous
-session — not a sequence of commands to announce to the human one at a time,
-and not a pause point between each. The human sees, at most, a handful of
-discovery questions (first time in a repo) and a final report; everything
-else happens without asking for confirmation, unless a real blocking
-ambiguity comes up.
+These are conceptual phases, and the agent moves through most of them in one
+continuous session without announcing each one — with exactly one deliberate
+checkpoint: **after `plan`**. Once `specs/<id>/plan.md` passes `homero
+feature check`, the agent stops and reports the plan for the human to
+review before moving on to `tasks`/`implement` (constitution.md principle
+9). A passing gate proves the plan is complete, not that a human signed off
+on it — those are different things, and the whole point of a human-readable
+plan is that a human actually reads it before code gets written from it.
+
+This checkpoint maps directly to the command surface:
+
+- `/homero-plan` runs discover (if needed) through plan, then stops there by
+  design — it never creates tasks or calls `homero-implementer`.
+- `/homero-implement` picks up an already-planned feature (its plan must
+  already pass `feature check`) and drives tasks through verify.
+- `/homero` does both in one command, but still pauses at the plan
+  checkpoint by default — same as running the two above back to back.
+
+The only way past the checkpoint without a second command or a follow-up
+message is when the human's own request already asked for uninterrupted
+end-to-end execution (e.g. "implementa todo sin pausar", "no te detengas a
+revisar"). Outside of that one checkpoint, the human sees at most a handful
+of discovery questions (first time in a repo) and a final report; nothing
+else pauses for confirmation, unless a real blocking ambiguity comes up.
 
 ## Phase rules
 

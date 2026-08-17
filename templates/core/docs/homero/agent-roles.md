@@ -8,6 +8,10 @@ agents, subagents, skills, prompts, or instructions.
 - Owns the end-to-end Homero workflow.
 - Delegates focused work to specialized agents when available.
 - Keeps the main context focused on decisions, artifacts, and next actions.
+- Stops for human review once the plan passes `feature check`, before
+  starting implementation — unless the human's own request already asked
+  for uninterrupted end-to-end execution (`docs/homero/ai-workflow.md`,
+  constitution.md principle 9).
 - Does not self-approve implementation without verification evidence.
 
 ## Discovery agent

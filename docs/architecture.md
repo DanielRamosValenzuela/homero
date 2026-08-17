@@ -34,11 +34,13 @@ Copilot adapter:
 - `.github/instructions/*.instructions.md` (rules) plus `tomaco-component-api.md`
   and `tomaco-component-gotchas.md` (plain reference docs, no `applyTo`)
 - `.github/agents/*.agent.md`
-- `.github/prompts/homero.prompt.md`
+- `.github/prompts/homero.prompt.md`, `homero-discover.prompt.md`,
+  `homero-plan.prompt.md`, `homero-implement.prompt.md`
 
 Claude adapter:
 
-- `.claude/commands/homero.md`
+- `.claude/commands/homero.md`, `homero-discover.md`, `homero-plan.md`,
+  `homero-implement.md`
 - `.claude/agents/*.md`
 - `.claude/rules/*.md` (forms, frontend, tomaco, server-actions, step-widgets, transport-patterns)
 - `.claude/skills/new-form/`, `.claude/skills/new-step/`, `.claude/skills/figma-to-component/`

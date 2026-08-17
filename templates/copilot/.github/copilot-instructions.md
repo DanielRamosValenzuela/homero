@@ -41,4 +41,5 @@ Use Homero as the harness contract:
 - Use Playwright CLI in the feature session to run user flows and save a screenshot plus snapshot for every scenario under `features/<id>/evidence/`.
 - Use `graphify query` instead of broad manual file-by-file reads when exploring unfamiliar or large parts of the codebase.
 - Run `node scripts/homero/homero.mjs feature check --target . --id <id>` before implementation and `node scripts/homero/homero.mjs verify --target . --id <id>` before claiming completion.
+- Stop once the plan (`specs/<id>/plan.md`, `spec.md`) passes `feature check` and report it for human review before implementing — do not continue straight through, unless the human's own request already asked for uninterrupted end-to-end execution (constitution.md principle 9). `/homero-plan` stops there by design; `/homero-implement` picks up from an already-reviewed plan; `/homero` does both but still pauses there by default.
 - Do not commit, push, create a pull request, merge, or modify Figma.

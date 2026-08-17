@@ -26,6 +26,7 @@ Before non-trivial frontend work, read `docs/homero/` in this order:
 9. Do not commit, push, create pull requests, merge, or modify Figma. Those actions belong to a human.
 10. Use `graphify query` instead of broad manual file-by-file reads when exploring unfamiliar or large parts of the codebase — see `docs/homero/knowledge-graph.md`.
 11. Never name a Tomaco component, prop, or token you have not confirmed against the generated inventory, the installed package, or a Code Connect mapping. Say you could not confirm it instead of guessing.
+12. Stop once the plan (`specs/<id>/plan.md`, `spec.md`) passes `feature check` and report it for human review before implementing — do not continue straight through, unless the human's own request already asked for uninterrupted end-to-end execution (constitution.md principle 9).
 
 ## Fast paths
 

@@ -5,6 +5,25 @@ explaining version boundaries that change `homero upgrade`'s behavior, not a
 full history of every change. Run `homero version --target .` to see what
 your install is actually on.
 
+## 0.5.0
+
+- **Breaking: the workflow now has a mandatory plan checkpoint.**
+  Previously `homero-coordinator` went from a Figma URL straight through
+  planning and implementation in one uninterrupted run
+  (`docs/homero/ai-workflow.md` said so explicitly: "not a pause point
+  between each"). That contradicted the actual design intent — a
+  human-readable plan the human never gets a chance to read before code
+  gets written from it isn't a review step, it's a formality. Constitution
+  principle 9 and `ai-workflow.md` now require stopping once the plan
+  passes `feature check`, before implementation starts, unless the human's
+  own request already asked for uninterrupted end-to-end execution.
+- **New required template files**: `.claude/commands/homero-plan.md` /
+  `homero-implement.md` (Claude) and `.github/prompts/homero-plan.prompt.md`
+  / `homero-implement.prompt.md` (Copilot) — `/homero-plan` always stops at
+  the checkpoint; `/homero-implement` picks up an already-reviewed plan and
+  drives it to completion; `/homero` still does both in one command but now
+  pauses at the checkpoint by default too.
+
 ## 0.4.0
 
 - **New required template files**: `.claude/skills/tomaco-design-system/references/css-utilities.md`

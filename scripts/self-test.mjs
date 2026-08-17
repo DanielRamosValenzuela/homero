@@ -155,7 +155,9 @@ const pairedAdapterTopics = [
   ["tomaco design system", "skills/tomaco-design-system/SKILL.md", "instructions/tomaco-design-system.instructions.md"],
   ["seguros-falabella-ui-ux", "skills/seguros-falabella-ui-ux/SKILL.md", "instructions/seguros-falabella-ui-ux.instructions.md"],
   ["entry command", "commands/homero.md", "prompts/homero.prompt.md"],
-  ["discover command", "commands/homero-discover.md", "prompts/homero-discover.prompt.md"]
+  ["discover command", "commands/homero-discover.md", "prompts/homero-discover.prompt.md"],
+  ["plan command", "commands/homero-plan.md", "prompts/homero-plan.prompt.md"],
+  ["implement command", "commands/homero-implement.md", "prompts/homero-implement.prompt.md"]
 ];
 
 for (const role of ["contracts", "coordinator", "discovery", "figma", "implementer", "planner", "reviewer"]) {
