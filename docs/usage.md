@@ -32,6 +32,28 @@ flowchart TD
     K -- "aprueba" --> L["Merge manual de la rama<br/>Homero nunca commitea/pushea/mergea"]
 ```
 
+## Guardrails (no negociables)
+
+Estas reglas viven en `docs/homero/constitution.md` y se aplican vía gates de
+código (`homero feature check` falla si no se cumplen) o vía instrucciones
+que todo agente Homero lee antes de trabajar:
+
+| Gate | Qué garantiza |
+| --- | --- |
+| 🎨 Tomaco obligatorio | Toda UI usa el design system; nada de CSS/Tailwind crudo sin excepción registrada |
+| 🖼️ Figma aprobado | URL, node y versión quedan registrados en cada `feature.json` |
+| 📐 Plan pixel-perfect | Componentes de Tomaco, tokens y estilos exactos por pantalla — un plan sin eso no pasa el gate |
+| ⏸️ Checkpoint humano | El plan se detiene para revisión antes de implementar, salvo que pidas explícitamente lo contrario |
+| 📜 Contrato de backend | `contract-first` / `contract-draft` / excepción explícita — nunca un mock inventado en silencio |
+| ❓ Preguntas específicas, no genéricas | El error de validación exacto por campo y el comportamiento de cada elemento interactivo deben confirmarse |
+| 🧪 Evidencia Playwright CLI | Screenshots y snapshots reales antes de pasar a `needs-review` |
+| 🔒 Solo humanos mergean | Homero nunca commitea, pushea, ni se autoaprueba |
+
+## Requisitos
+
+Git, Node.js ≥18, `pnpm`, un repo frontend con `package.json`, y un Figma
+aprobado + contrato de backend (o ejemplos/cURLs) por feature.
+
 ## Instalar
 
 Un solo comando, parado en la raíz de tu repo:
