@@ -1,16 +1,22 @@
 # Server action rule
 
-Apply this rule whenever editing server-side transport or mutation code.
+Apply this rule whenever editing `paths.serverActionsRoot` files.
+
+This repo family supports two valid write-transport patterns. Check
+`homero.config.json` `transport.pattern` before assuming which one applies —
+this file covers `server-actions`; see `rules/transport-patterns.md` for the
+`proxy-middleware` pattern.
 
 ## Required conventions
 
-- Keep sensitive transport details on the server boundary
-- Prefer a params object over many positional arguments
-- Keep request and response typing explicit
-- Do not leak secrets or internal URLs into the client bundle
+- Keep server actions thin and typed
+- Validate incoming payloads before calling service or API layers
+- Do not expose secrets, raw credentials, or sensitive payloads in logs
+- Reuse the project's existing service layer and error handling patterns
+- Keep client components from importing server-only modules directly
 
-## Validation
+## Reject
 
-- The caller shape is clear
-- Error handling is explicit
-- Logging is sanitized
+- Mixing both patterns for the same concern without recording the decision
+  in `homero.config.json`
+- Untyped or unvalidated payloads in a server action

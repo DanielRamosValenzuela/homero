@@ -68,6 +68,52 @@ function runGit(args) {
   }
 }
 
+// Same slugify() the CLI uses to derive specs/<id>-<slug>/ — kept in lockstep manually since
+// self-test drives the CLI as a subprocess and cannot import its internals directly.
+function slugify(value) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+// Fills every section `planErrors()` requires non-empty (principle 18, constitution.md) with
+// throwaway-but-real content, so a feature's `feature check`/`run`/`verify` calls below exercise
+// the actual gate instead of failing on the untouched specs/_template/plan.md placeholder.
+function fillRequiredPlanSections(specDir) {
+  const planPath = path.join(specDir, "plan.md");
+  // The shipped template uses CRLF. Normalize once so `${heading}\n` lookups below are not
+  // silently broken by a `\r` sitting between the heading text and the newline.
+  let plan = fs.readFileSync(planPath, "utf8").replace(/\r\n/g, "\n");
+
+  const fills = {
+    "## Technical summary": "\n\nSelf-test placeholder technical summary.\n",
+    "## Tomaco components and tokens": "\n\n- Card (props: title, footer) using --spacing-16 padding.\n",
+    "## Pixel-perfect styling": "\n\n- Desktop: 24px padding via .p24; mobile: 16px padding via .p16.\n",
+    "## Files to create or modify": "\n\n- src/ui/cl/SelfTestFeature/index.tsx\n",
+    "## Form and validation plan": "\n\n- Not applicable — this feature has no form.\n",
+    "## Figma adaptation plan": "\n\n- Mobile stacks the two columns from desktop.\n"
+  };
+
+  for (const [heading, filledBody] of Object.entries(fills)) {
+    const headingIndex = plan.indexOf(`${heading}\n`);
+    if (headingIndex === -1) {
+      console.error(`Expected plan.md template to contain heading: ${heading}`);
+      process.exit(1);
+    }
+
+    const bodyStart = headingIndex + `${heading}\n`.length;
+    const nextHeadingIndex = plan.indexOf("\n## ", bodyStart);
+    const bodyEnd = nextHeadingIndex === -1 ? plan.length : nextHeadingIndex;
+    plan = `${plan.slice(0, bodyStart)}${filledBody}${plan.slice(bodyEnd)}`;
+  }
+
+  fs.writeFileSync(planPath, plan, "utf8");
+}
+
 // --- Version invariant ---
 // Everything Homero reports about versions (the stamp in homero.config.json, `homero
 // version`, the drift warning, the upgrade banner) comes from a constant in the CLI, not
@@ -85,6 +131,54 @@ const manifestVersion = JSON.parse(fs.readFileSync(path.join(repoRoot, "package.
 
 if (homeroVersionConstant !== manifestVersion) {
   console.error(`homeroVersion constant is ${homeroVersionConstant} but package.json version is ${manifestVersion} — keep them in lockstep`);
+  process.exit(1);
+}
+
+// --- Adapter content-parity structural check ---
+// `homero validate` only checks that a client's own template tree exists in a target repo, not
+// that Claude and Copilot cover the same ground (docs/architecture.md). This does not diff
+// wording — that stays a manual-authoring invariant — but it does catch a whole topic silently
+// missing on one side, which is exactly the kind of drift that let
+// rules/server-actions.md + rules/transport-patterns.md fall out of sync with their Copilot
+// equivalents unnoticed. Runs against the source templates directly, no target repo needed.
+// `figma-to-component`/`new-form`/`new-step` are intentionally excluded: they are Claude-only
+// skill invocations with no Copilot prompt-file equivalent, not a gap.
+const claudeAdapterBase = path.join(repoRoot, "templates", "claude", ".claude");
+const copilotAdapterBase = path.join(repoRoot, "templates", "copilot", ".github");
+
+const pairedAdapterTopics = [
+  ["forms", "rules/forms.md", "instructions/forms.instructions.md"],
+  ["frontend", "rules/frontend.md", "instructions/frontend.instructions.md"],
+  ["server-actions", "rules/server-actions.md", "instructions/server-actions.instructions.md"],
+  ["transport/proxy", "rules/transport-patterns.md", "instructions/transport.instructions.md"],
+  ["step-widgets", "rules/step-widgets.md", "instructions/step-widgets.instructions.md"],
+  ["tomaco design system", "skills/tomaco-design-system/SKILL.md", "instructions/tomaco-design-system.instructions.md"],
+  ["seguros-falabella-ui-ux", "skills/seguros-falabella-ui-ux/SKILL.md", "instructions/seguros-falabella-ui-ux.instructions.md"],
+  ["entry command", "commands/homero.md", "prompts/homero.prompt.md"],
+  ["discover command", "commands/homero-discover.md", "prompts/homero-discover.prompt.md"]
+];
+
+for (const role of ["contracts", "coordinator", "discovery", "figma", "implementer", "planner", "reviewer"]) {
+  pairedAdapterTopics.push([`agent: ${role}`, `agents/homero-${role}.md`, `agents/homero-${role}.agent.md`]);
+}
+
+const adapterParityErrors = [];
+for (const [topic, claudeRelative, copilotRelative] of pairedAdapterTopics) {
+  const claudeExists = fs.existsSync(path.join(claudeAdapterBase, claudeRelative));
+  const copilotExists = fs.existsSync(path.join(copilotAdapterBase, copilotRelative));
+
+  if (claudeExists !== copilotExists) {
+    adapterParityErrors.push(
+      `"${topic}" exists on only one adapter (claude ${claudeRelative}: ${claudeExists ? "present" : "MISSING"}; copilot ${copilotRelative}: ${copilotExists ? "present" : "MISSING"})`
+    );
+  }
+}
+
+if (adapterParityErrors.length > 0) {
+  console.error("Homero self-test failed: Claude/Copilot adapter parity drift detected:");
+  for (const error of adapterParityErrors) {
+    console.error(`- ${error}`);
+  }
   process.exit(1);
 }
 
@@ -150,6 +244,7 @@ const generatedWorkflow = path.join(targetRoot, "docs", "homero", "ai-workflow.m
 const generatedCopilotAgent = path.join(targetRoot, ".github", "agents", "homero-coordinator.agent.md");
 const generatedClaudeAgent = path.join(targetRoot, ".claude", "agents", "homero-coordinator.md");
 const featurePath = path.join(featureDir, "feature.json");
+const featureSpecDir = path.join(featureWorktree, "specs", `FEAT-001-${slugify("Quote form")}`);
 const playwrightEvidencePath = path.join(featureDir, "evidence", "playwright-cli.json");
 const featureConfigPath = path.join(featureWorktree, "homero.config.json");
 const config = JSON.parse(fs.readFileSync(path.join(targetRoot, "homero.config.json"), "utf8"));
@@ -248,6 +343,13 @@ fs.writeFileSync(featurePath, `${JSON.stringify(featureWithDefaultUiStates, null
 runExpectFailure(["feature", "check", "--target", targetRoot, "--id", "FEAT-001"]);
 
 fs.writeFileSync(featurePath, `${JSON.stringify(feature, null, 2)}\n`, "utf8");
+
+// --- Negative test: plan.md still the unedited specs/_template/plan.md placeholder ---
+// feature.json is fully valid at this point — this isolates the plan.md gate (principle 18)
+// as the specific reason `feature check` still refuses to pass.
+runExpectFailure(["feature", "check", "--target", targetRoot, "--id", "FEAT-001"]);
+
+fillRequiredPlanSections(featureSpecDir);
 run(["feature", "check", "--target", targetRoot, "--id", "FEAT-001"]);
 run(["verify", "--target", targetRoot, "--id", "FEAT-001"]);
 
@@ -430,20 +532,20 @@ if (!fs.existsSync(path.join(featureDir, "state.json"))) {
 featureConfig.commands.lint = 'node -e "process.exit(1)"';
 fs.writeFileSync(featureConfigPath, `${JSON.stringify(featureConfig, null, 2)}\n`, "utf8");
 
-for (let attempt = 1; attempt <= 3; attempt += 1) {
+for (let attempt = 1; attempt <= 2; attempt += 1) {
   runExpectFailure(["verify", "--target", targetRoot, "--id", "FEAT-001"]);
 }
 
 state = readState();
-if (state.phase !== "verify-exhausted" || state.verifyAttempts !== 3) {
-  console.error(`Expected phase 'verify-exhausted' with verifyAttempts=3 after 3 failures, got phase=${state.phase} verifyAttempts=${state.verifyAttempts}`);
+if (state.phase !== "verify-exhausted" || state.verifyAttempts !== 2) {
+  console.error(`Expected phase 'verify-exhausted' with verifyAttempts=2 after 2 failures, got phase=${state.phase} verifyAttempts=${state.verifyAttempts}`);
   process.exit(1);
 }
 
 runExpectFailure(["verify", "--target", targetRoot, "--id", "FEAT-001"]);
 state = readState();
-if (state.verifyAttempts !== 3) {
-  console.error(`Expected a 4th verify call to stay blocked without incrementing further, got verifyAttempts=${state.verifyAttempts}`);
+if (state.verifyAttempts !== 2) {
+  console.error(`Expected a 3rd verify call to stay blocked without incrementing further, got verifyAttempts=${state.verifyAttempts}`);
   process.exit(1);
 }
 
@@ -686,6 +788,7 @@ run([
 const phaseFeatureWorktree = path.join(path.resolve(targetRoot, "../.homero-worktrees"), path.basename(targetRoot), "FEAT-002");
 const phaseFeatureDir = path.join(phaseFeatureWorktree, "features", "FEAT-002");
 const phaseFeaturePath = path.join(phaseFeatureDir, "feature.json");
+const phaseFeatureSpecDir = path.join(phaseFeatureWorktree, "specs", `FEAT-002-${slugify("Phase transitions")}`);
 const phaseFeatureConfigPath = path.join(phaseFeatureWorktree, "homero.config.json");
 const phaseEvidencePath = path.join(phaseFeatureDir, "evidence", "playwright-cli.json");
 
@@ -704,6 +807,7 @@ phaseFeature.contracts.mocks.source = "src/mocks/phases.ts";
 fs.mkdirSync(path.join(phaseFeatureWorktree, "src", "mocks"), { recursive: true });
 fs.writeFileSync(path.join(phaseFeatureWorktree, "src", "mocks", "phases.ts"), "export const phasesMock = {};\n", "utf8");
 fs.writeFileSync(phaseFeaturePath, `${JSON.stringify(phaseFeature, null, 2)}\n`, "utf8");
+fillRequiredPlanSections(phaseFeatureSpecDir);
 
 const phaseEvidence = JSON.parse(fs.readFileSync(phaseEvidencePath, "utf8"));
 fs.mkdirSync(path.join(phaseFeatureDir, "evidence", "screenshots"), { recursive: true });
@@ -818,6 +922,7 @@ run([
 const copilotFeatureWorktree = path.join(path.resolve(copilotClientRoot, "../.homero-worktrees"), path.basename(copilotClientRoot), "FEAT-900");
 const copilotFeatureDir = path.join(copilotFeatureWorktree, "features", "FEAT-900");
 const copilotFeaturePath = path.join(copilotFeatureDir, "feature.json");
+const copilotFeatureSpecDir = path.join(copilotFeatureWorktree, "specs", `FEAT-900-${slugify("Copilot-only lifecycle")}`);
 const copilotFeatureConfigPath = path.join(copilotFeatureWorktree, "homero.config.json");
 const copilotEvidencePath = path.join(copilotFeatureDir, "evidence", "playwright-cli.json");
 
@@ -830,6 +935,7 @@ copilotFeature.contracts.mocks.source = "src/mocks/copilot.ts";
 fs.mkdirSync(path.join(copilotFeatureWorktree, "src", "mocks"), { recursive: true });
 fs.writeFileSync(path.join(copilotFeatureWorktree, "src", "mocks", "copilot.ts"), "export const copilotMock = {};\n", "utf8");
 fs.writeFileSync(copilotFeaturePath, `${JSON.stringify(copilotFeature, null, 2)}\n`, "utf8");
+fillRequiredPlanSections(copilotFeatureSpecDir);
 
 const copilotFeatureEvidence = JSON.parse(fs.readFileSync(copilotEvidencePath, "utf8"));
 fs.mkdirSync(path.join(copilotFeatureDir, "evidence", "screenshots"), { recursive: true });

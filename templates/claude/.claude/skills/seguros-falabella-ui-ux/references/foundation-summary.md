@@ -114,6 +114,12 @@ The Figma grid page documents separate containers for desktop and mobile.
 - Max content width shown: `1152px`.
 - Side margins shown: `64px`.
 - A recurring example split uses a main area around `757px` and a secondary support area around `363px` inside the desktop container.
+- **Code cross-check**: `1152px` is not just a Figma figure — it is the real, verified
+  `max-width` Tomaco's own `container`/`container-lg`/`container-xl`/`container-xxl`
+  classes resolve to in `styles/grid.sass` (Tomaco caps the container at `lg`'s width
+  instead of growing further at `xl`/`xxl`, unlike stock Bootstrap). See
+  `../../tomaco-design-system/references/css-utilities.md` → Grid system. Figma and
+  code agree here — treat `Container.lg.SF` as confirmed, not just design intent.
 
 ### Desktop OMNI variant
 
@@ -122,6 +128,13 @@ The Figma grid page documents separate containers for desktop and mobile.
 - Max content width shown: `1120px`.
 - The composition places the content container inside wider desktop margins than the standard Seguros grid.
 - The same layout logic remains: one dominant content area plus one support area, with examples around `736 / 352` inside the OMNI container.
+- **Code cross-check**: `1120px` does **not** come from Tomaco's shared
+  `container`/`container-*` classes — those only ever resolve to `1152px` (see
+  above). `Container.lg.OMNI` is a Figma-file-specific variant, not a Tomaco
+  library grid class; if a screen needs this exact width, it is a custom
+  container built for that flow, not something `className="container"` alone
+  produces. Confirm with the design source before assuming `container` gives
+  you `1120px`.
 
 ### Layout implications
 

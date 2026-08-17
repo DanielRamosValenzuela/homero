@@ -31,7 +31,10 @@ This requires the `figma` MCP server to be registered for GitHub Copilot's codin
 
 - Design intent summary
 - Required UI states
-- Component/design-system mapping
+- Component/design-system mapping — exact Tomaco component name, props, and
+  spacing/layout tokens per screen and breakpoint, specific enough to drop
+  straight into plan.md's "Tomaco components and tokens" and "Pixel-perfect
+  styling" sections without further guessing
 - Downloaded asset paths, if any
 - Open Figma or UX questions
 - Visual verification checklist

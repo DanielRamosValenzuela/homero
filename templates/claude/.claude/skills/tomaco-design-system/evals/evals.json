@@ -30,6 +30,36 @@
       "prompt": "I couldn't find an existing date range picker in Tomaco, so I'm going to hand-build one by composing two raw `<input type=\"date\">` elements styled to match Tomaco's look.",
       "expected_output": "Must challenge the premise before agreeing: per the resolution order (Code Connect, generated inventory, installed package, existing repo usage), the agent must actually check whether `InputDate`/`InputDateLite` or another existing Tomaco component already covers the need before accepting that none exists. Must cite `docs/homero/constitution.md` — a hand-built lookalike of an existing Tomaco component is a rejection, not a style note — and must not proceed with the hand-built version without that check, even though the user's message asserts they already looked.",
       "files": []
+    },
+    {
+      "id": 6,
+      "prompt": "I want a two-column checkout layout: main task area and a summary sidebar, matching the standard Seguros Falabella desktop container. What grid classes and container width should I use?",
+      "expected_output": "Must use `container` (or `container-lg`/`container-xl`) plus `row`/`col-*` and state the real verified max-width is 1152px (Tomaco's grid.sass caps container/container-lg/container-xl/container-xxl at the same 1152px past `lg` — it does not keep growing like stock Bootstrap). Must not quote the 1120px `Container.lg.OMNI` figure for a standard Seguros flow — that is a different, Figma-file-specific variant, not what `className=\"container\"` produces. Should cite `references/css-utilities.md` (Grid system) as the source, not just the Figma foundations doc alone.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "prompt": "Build a 3-column row of cards using `row` and `col-md-4`, and tell me how much horizontal gap there will be between them by default if I don't add any `g-*` class.",
+      "expected_output": "Must state the default row gutter is 32px, not Bootstrap's default 1.5rem/24px — Tomaco overrides `--bs-gutter-x` to 32px in `styles/grid.sass`. Must not assume stock Bootstrap gutter behavior. Should cite `references/css-utilities.md` as the source of the override.",
+      "files": []
+    },
+    {
+      "id": 8,
+      "prompt": "I have Tomaco MCP enabled in this workspace. Before writing a card layout with `mb16`, `pt24`, and `gap-16`, validate these classes through MCP for my loaded version.",
+      "expected_output": "Must prioritize the MCP tool (e.g. `get_utility_classes`) before asserting the classes are valid, per the 'Tomaco MCP (optional)' note in SKILL.md. Must not silently fall back to the static reference tables without at least attempting/acknowledging the MCP path when the user says it's available. If MCP is not actually connected in this session despite the user's claim, must say so honestly instead of fabricating a tool call result.",
+      "files": []
+    },
+    {
+      "id": 9,
+      "prompt": "No Tomaco MCP available here. I need to confirm whether `px-3` on a `<div>` will behave as padding or font-size before I ship a summary card.",
+      "expected_output": "Must flag this as the documented `px-{0-5}` (Bootstrap spacing) vs `px-{1-100}` (Tomaco font-size) naming collision from `references/css-utilities.md`. For values above 5 Tomaco's font-size rule wins unambiguously (cascade order); for 0–5 the two rules are adjacent and the agent must not assert a confident answer without checking the compiled `tomaco-ui.css` — must recommend the unambiguous directional classes (`pt{N}`, `pl{N}`, or the fully-spelled Bootstrap directional forms) instead of the ambiguous `px-3` shorthand, rather than guessing.",
+      "files": []
+    },
+    {
+      "id": 10,
+      "prompt": "For a form section, use `mt-sm-16` to add top margin only on tablet and up. What's the actual breakpoint that fires at?",
+      "expected_output": "Must correctly identify `mt-sm-16` as a Tomaco-native directional class (not the Bootstrap-compatible grid family) and state it fires at 768px (from `$breaks` in `styles/variables.sass`), not 576px (which is where the Bootstrap-compatible `sm` — e.g. `col-sm-*`, `mt-sm-3` — fires). Must explicitly name both systems and why the same `sm` label means two different widths, citing `references/css-utilities.md`'s breakpoint-collision table rather than picking one number by guessing.",
+      "files": []
     }
   ]
 }

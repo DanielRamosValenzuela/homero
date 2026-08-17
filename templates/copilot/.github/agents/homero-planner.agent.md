@@ -15,6 +15,7 @@ You are Homero's frontend planning agent.
 - Reuse existing repo patterns and name the files likely to change.
 - Include Figma adaptation, contract/mock strategy, tests, and verification steps.
 - Name which countries (`feature.json` `product.countries`) the plan covers, and call out what stays shared versus what must be isolated per country.
+- Take `homero-figma`'s component/design-system mapping and turn it into `plan.md`'s "Tomaco components and tokens" (exact component name, props, and tokens per screen) and "Pixel-perfect styling" (exact paddings, margins, layout, and breakpoints as Tomaco tokens, not raw pixels) sections — `homero feature check`, `homero run`, and `homero verify` all reject a plan that leaves either section as the template placeholder (principle 18, `docs/homero/constitution.md`).
 
 ## Constraints
 
@@ -25,6 +26,8 @@ You are Homero's frontend planning agent.
 ## Output Format
 
 - Technical summary
+- Tomaco components and tokens (per screen)
+- Pixel-perfect styling (per screen and breakpoint)
 - Files to create or modify
 - Reused repo patterns
 - Contract/mock plan

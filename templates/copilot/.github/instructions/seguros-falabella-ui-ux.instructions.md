@@ -39,9 +39,19 @@ Use these unless the task clearly requires a documented variant.
   (`Container.sm.SF`, inner content example `327px`).
 - **Desktop**: `1280px` viewport baseline, `1152px` max content container,
   `64px` side margins (`Container.lg.SF`). A recurring split inside it is
-  `~757px` main content + `~363px` summary.
+  `~757px` main content + `~363px` summary. **Code cross-check**: `1152px` is
+  the real, verified `max-width` of Tomaco's `container`/`container-lg`/
+  `container-xl`/`container-xxl` classes (`styles/grid.sass` caps the
+  container at `lg`'s width instead of growing further at `xl`/`xxl`, unlike
+  stock Bootstrap) — see `.github/instructions/tomaco-css-utilities.md` → Grid
+  system. Figma and code agree here.
 - **Desktop OMNI variant**: `1440px` viewport, `1120px` max content
-  (`Container.lg.OMNI`), split example `~736px` / `~352px`.
+  (`Container.lg.OMNI`), split example `~736px` / `~352px`. **Code
+  cross-check**: `1120px` does **not** come from Tomaco's shared `container`
+  classes (those only ever resolve to `1152px`) — `Container.lg.OMNI` is a
+  Figma-file-specific variant, not a Tomaco library grid class. Confirm with
+  the design source before assuming `className="container"` alone produces
+  `1120px`.
 - **Spacing scale** (doubling rhythm): `4`, `8`, `16`, `32`, `64`. Avoid
   one-off values (`20`, `22`, `26`, `30`) unless an existing component already
   imposes them.

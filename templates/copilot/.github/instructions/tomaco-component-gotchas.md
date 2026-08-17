@@ -34,6 +34,9 @@
 - The back button's label is hardcoded to the literal `"Volver"` (and its icon
   color to `#3C4043`), with no prop to override either. The component's own
   `text` prop only controls the primary/forward button.
+- `backDisabled` (added in `1.14.40`) disables the back button but does not
+  solve the point above — it's a separate on/off toggle, not a label/color
+  override.
 
 ## Alert
 

@@ -21,7 +21,10 @@ Return:
 
 - design intent summary
 - required UI states
-- component/design-system mapping
+- component/design-system mapping — exact Tomaco component name, props, and
+  spacing/layout tokens per screen and breakpoint, specific enough to drop
+  straight into plan.md's "Tomaco components and tokens" and "Pixel-perfect
+  styling" sections without further guessing
 - downloaded asset paths, if any
 - open Figma or UX questions
 - visual verification checklist

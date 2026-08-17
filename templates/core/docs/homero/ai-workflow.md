@@ -51,7 +51,11 @@ contracts, and acceptance criteria. Focus on what and why before implementation.
 ### plan
 
 Create `specs/<feature>/plan.md` by adapting the spec to the real repo patterns.
-Name files, dependencies, risks, mock strategy, and verification steps.
+Name files, dependencies, risks, mock strategy, and verification steps. Name
+every Tomaco component and token used per screen, and the exact pixel-perfect
+styling (paddings, margins, layout, breakpoints) per screen and viewport —
+`feature check`/`run`/`verify` reject a plan that leaves either section as the
+unedited template (principle 18, `constitution.md`).
 
 ### tasks
 
@@ -104,7 +108,7 @@ These files are the source of truth for resuming after an interruption
 - These commands never call an LLM; they are deterministic state updates the
   agent calls between its own reasoning steps.
 - `node scripts/homero/homero.mjs verify --target . --id <id>` is bounded the
-  same way (`runtime.maxVerifyAttempts`, 3 by default): after that many
+  same way (`runtime.maxVerifyAttempts`, 2 by default): after that many
   failures in a row it stops running and `state.phase` becomes
   `verify-exhausted` — a human must review the receipt and either fix the
   specific failure or say what to do next before it runs again.

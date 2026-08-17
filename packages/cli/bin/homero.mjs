@@ -28,7 +28,7 @@ const repoRoot = path.resolve(currentDir, "../../..");
 // scripts/homero/homero.mjs. `homero upgrade` compares it against the installed
 // homeroVersion to decide what to refresh. Kept in lockstep with package.json by
 // scripts/self-test.mjs — bump both together.
-const homeroVersion = "0.2.0";
+const homeroVersion = "0.4.0";
 
 function readArg(name) {
   const index = commandArgs.indexOf(name);
@@ -884,7 +884,7 @@ function loopStateTemplate(feature, config) {
     limits: {
       maxIterations: config.runtime?.maxIterations ?? 10,
       maxAttemptsPerTask: config.runtime?.maxAttemptsPerTask ?? 3,
-      maxVerifyAttempts: config.runtime?.maxVerifyAttempts ?? 3
+      maxVerifyAttempts: config.runtime?.maxVerifyAttempts ?? 2
     },
     iterations: 0,
     verifyAttempts: 0,
@@ -1159,6 +1159,83 @@ function featureErrors(targetRoot, feature) {
   return errors;
 }
 
+// Principle 18 in constitution.md: plan.md must name exact Tomaco components/tokens and
+// pixel-perfect styling per screen, not a general description. Same philosophy as the
+// uiStates default-checklist rejection above: compare against the shipped template's own
+// default content for that section, rather than just checking "non-empty" — some sections
+// (like the two below) ship with instructional prose ahead of their placeholder bullet, so
+// "non-empty" alone would pass an agent that never touched the section at all.
+const requiredPlanSections = [
+  "Technical summary",
+  "Tomaco components and tokens",
+  "Pixel-perfect styling",
+  "Files to create or modify",
+  "Form and validation plan",
+  "Figma adaptation plan"
+];
+
+function parseMarkdownSections(markdown) {
+  const sections = {};
+  let currentHeading = null;
+  let buffer = [];
+
+  const flush = () => {
+    if (currentHeading !== null) {
+      sections[currentHeading] = buffer.join("\n").trim();
+    }
+  };
+
+  // Normalize CRLF first: the shipped template (and anything re-saved by a Windows editor)
+  // uses \r\n, and comparing an unnormalized feature plan.md against an unnormalized template
+  // could make an untouched section look "edited" purely from a line-ending difference.
+  for (const line of markdown.replace(/\r\n/g, "\n").split("\n")) {
+    const match = /^##\s+(.+?)\s*$/.exec(line);
+    if (match) {
+      flush();
+      currentHeading = match[1];
+      buffer = [];
+    } else if (currentHeading !== null) {
+      buffer.push(line);
+    }
+  }
+  flush();
+
+  return sections;
+}
+
+function planErrors(workspaceRoot, specDir) {
+  const planPath = path.join(specDir, "plan.md");
+
+  if (!fs.existsSync(planPath)) {
+    return [`plan.md not found at ${planPath} — run \`homero feature create\` before checking, running, or verifying this feature`];
+  }
+
+  const planSections = parseMarkdownSections(fs.readFileSync(planPath, "utf8"));
+  const templatePath = path.join(workspaceRoot, "specs", "_template", "plan.md");
+  const templateSections = fs.existsSync(templatePath)
+    ? parseMarkdownSections(fs.readFileSync(templatePath, "utf8"))
+    : {};
+
+  const errors = [];
+
+  for (const heading of requiredPlanSections) {
+    const body = planSections[heading];
+
+    if (!body) {
+      errors.push(`plan.md is missing the required section "${heading}"`);
+      continue;
+    }
+
+    if (templateSections[heading] !== undefined && body === templateSections[heading]) {
+      errors.push(
+        `plan.md section "${heading}" is still the unedited template placeholder — principle 18 requires exact Tomaco components, tokens, and pixel-perfect styling per screen before implementation starts`
+      );
+    }
+  }
+
+  return errors;
+}
+
 function safeEvidencePath(featureDir, relativePath) {
   if (!relativePath || path.isAbsolute(relativePath)) {
     return null;
@@ -1253,9 +1330,11 @@ function findFeatureWorkspace(targetRoot, id) {
 
 function featureCheck(targetRoot, id) {
   const { workspaceRoot, featureDir, feature } = readFeature(targetRoot, id);
+  const specDir = featurePaths(workspaceRoot, feature.id, feature.name).specDir;
   const errors = [
     ...featureErrors(workspaceRoot, feature),
-    ...playwrightEvidenceErrors(featureDir, feature)
+    ...playwrightEvidenceErrors(featureDir, feature),
+    ...planErrors(workspaceRoot, specDir)
   ];
 
   if (errors.length > 0) {
@@ -1442,7 +1521,8 @@ function verifyFeature() {
   const workspaceConfig = readConfig(workspaceRoot);
   const gateErrors = [
     ...featureErrors(workspaceRoot, feature),
-    ...playwrightEvidenceErrors(featureDir, feature)
+    ...playwrightEvidenceErrors(featureDir, feature),
+    ...planErrors(workspaceRoot, featurePaths(workspaceRoot, feature.id, feature.name).specDir)
   ];
 
   if (gateErrors.length > 0) {
@@ -1454,7 +1534,7 @@ function verifyFeature() {
   }
 
   const state = ensureLoopState(featureDir, feature, workspaceConfig);
-  const verifyLimit = state.limits?.maxVerifyAttempts ?? workspaceConfig.runtime?.maxVerifyAttempts ?? 3;
+  const verifyLimit = state.limits?.maxVerifyAttempts ?? workspaceConfig.runtime?.maxVerifyAttempts ?? 2;
 
   if ((state.verifyAttempts ?? 0) >= verifyLimit) {
     fail(`error_max_verify_attempts: ${feature.id} already failed verification ${state.verifyAttempts} times (limit ${verifyLimit}). Phase 'verify-exhausted' — a human must review the last receipt and either fix it directly or give specific instructions. To retry automatically, reset state.verifyAttempts in state.json or raise runtime.maxVerifyAttempts.`);
@@ -1554,7 +1634,10 @@ function runLoop() {
   const config = readConfig(workspaceRoot);
   const state = ensureLoopState(featureDir, feature, config);
 
-  const contractErrors = featureErrors(workspaceRoot, feature);
+  const contractErrors = [
+    ...featureErrors(workspaceRoot, feature),
+    ...planErrors(workspaceRoot, featurePaths(workspaceRoot, feature.id, feature.name).specDir)
+  ];
   if (contractErrors.length > 0) {
     console.error(`Feature ${id} is not ready for the loop:`);
     for (const error of contractErrors) {
@@ -1596,7 +1679,7 @@ function runLoop() {
       state.phase = "blocked";
       brief = "Only blocked tasks remain. Resolve or split them before continuing.";
     } else {
-      const verifyLimit = state.limits?.maxVerifyAttempts ?? config.runtime?.maxVerifyAttempts ?? 3;
+      const verifyLimit = state.limits?.maxVerifyAttempts ?? config.runtime?.maxVerifyAttempts ?? 2;
 
       if ((state.verifyAttempts ?? 0) >= verifyLimit) {
         state.phase = "verify-exhausted";
@@ -1828,7 +1911,7 @@ function taskStatus() {
     return;
   }
 
-  const verifyLimit = state.limits?.maxVerifyAttempts ?? config.runtime?.maxVerifyAttempts ?? 3;
+  const verifyLimit = state.limits?.maxVerifyAttempts ?? config.runtime?.maxVerifyAttempts ?? 2;
   console.log(`Feature ${feature.id}  phase=${state.phase}  iterations=${state.iterations}/${state.limits.maxIterations}  verifyAttempts=${state.verifyAttempts ?? 0}/${verifyLimit}`);
 
   const activeTask = state.tasks.find(task => task.id === state.activeTaskId);

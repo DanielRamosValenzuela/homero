@@ -57,6 +57,9 @@ cualquier import profundo de CSS. Si intentás
 La hoja de estilos se carga fuera de banda, con un `<link>` en el `<head>`:
 
 ```html
+<!-- QA -->
+<link href="https://static-qa.fif.tech/insurance-assets/seguros-ui/css/tomaco-ui.css" rel="stylesheet" />
+<!-- Production -->
 <link href="https://static.fif.tech/insurance-assets/seguros-ui/css/tomaco-ui.css" rel="stylesheet" />
 ```
 
@@ -71,6 +74,11 @@ Consecuencias prácticas:
   solo si esa hoja está cargada.
 - Confirmá con el equipo cuál es la URL vigente antes de asumir esta — puede
   estar versionada o servida desde otro entorno.
+- El paquete npm (`tomaco-components`, tu lockfile) y el `tomaco-ui.css`
+  desplegado en static tienen ciclos de release **independientes** — no
+  asumas que van en el mismo patch. Ver
+  `.claude/skills/tomaco-design-system/references/css-utilities.md` para el
+  detalle completo de clases/grilla/tokens verificado contra el Sass real.
 
 ## Utility-class traps
 

@@ -21,6 +21,28 @@ below; reuse or extend it, and only propose a new file if nothing matches.
 
 -
 
+## Tomaco components and tokens
+
+For every screen or section this feature touches: the exact Tomaco
+component name (confirmed against the installed `tomaco-components`
+package, the generated catalog, or a Figma Code Connect mapping — never a
+guess, per principle 11/16 in `docs/homero/constitution.md`), the props it
+needs, and which design tokens (spacing, color, typography) back it. A
+component you could not confirm does not go here — it goes under Open
+questions in the spec.
+
+-
+
+## Pixel-perfect styling
+
+For every screen and breakpoint (desktop, mobile — see `design.viewports`
+in `feature.json`): exact paddings, margins, gaps, and layout (grid/flex
+structure), expressed as Tomaco spacing tokens or utility classes, not raw
+pixel values copied from Figma. Anything Figma shows that Tomaco has no
+token for is an open question, not an invented value.
+
+-
+
 ## Files to create or modify
 
 -

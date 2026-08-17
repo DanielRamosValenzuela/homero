@@ -5,6 +5,60 @@ explaining version boundaries that change `homero upgrade`'s behavior, not a
 full history of every change. Run `homero version --target .` to see what
 your install is actually on.
 
+## 0.4.0
+
+- **New required template files**: `.claude/skills/tomaco-design-system/references/css-utilities.md`
+  (Claude) and `.github/instructions/tomaco-css-utilities.md` (Copilot). An
+  already-installed repo will fail `homero validate` as "missing required
+  file" until it runs `homero upgrade`.
+- Tomaco design-system knowledge enriched from the design system's own
+  upstream skill (`tomaco-components/.github/skills/tomaco-design-system/`,
+  audited against v1.14.40) plus direct verification against the real
+  `styles/*.sass` sources at v1.14.42: an exhaustive positive CSS
+  utility-class/grid/color-token reference (previously Homero only had
+  utility-class *traps*, not a positive catalog), and two Tomaco-specific
+  grid overrides not documented anywhere before — containers capped at
+  1152px past `lg` (don't grow further at `xl`/`xxl` like stock Bootstrap),
+  and a 32px default `.row` gutter (not Bootstrap's 24px). Cross-checked and
+  reconciled against the Figma-derived `Container.lg.SF` (1152px, confirmed)
+  / `Container.lg.OMNI` (1120px, confirmed as a Figma-only variant, not a
+  Tomaco grid class) figures already in `seguros-falabella-ui-ux`.
+- `tomaco-design-system` evals expanded from 5 to 10, covering CSS
+  class-family disambiguation (Tomaco-native vs Bootstrap-compatible
+  breakpoints/spacing) and the optional Tomaco MCP validation path.
+- `mcp.example.json` documents `tomaco-mcp-server` (a separate, real MCP
+  server maintained by the design-system team, 14 live component/CSS/prop
+  query tools) as an explicitly optional, disabled-by-default entry — Homero
+  does not assume it's deployed for any given org.
+
+## 0.3.0
+
+- **Breaking: `runtime.maxVerifyAttempts` now defaults to 2, not 3**, on a
+  fresh `homero init`. `upgrade` never rewrites a recorded config value, so
+  an already-installed repo keeps whatever it has today — this only changes
+  what new installs get. Raise it back to 3 (or any value) in
+  `homero.config.json` if the old default was intentional.
+- **Breaking: `plan.md` now has two new required sections** — "Tomaco
+  components and tokens" and "Pixel-perfect styling" — and `homero feature
+  check`/`run`/`verify` all now reject a plan that leaves any of its six
+  required sections (those two plus Technical summary, Files to create or
+  modify, Form and validation plan, Figma adaptation plan) as the shipped
+  template's unedited placeholder (constitution.md principle 18). A feature
+  already in flight whose `plan.md` predates this version will start failing
+  its next `feature check`/`run`/`verify` until those sections are filled
+  in — this is deliberate, not a regression: the plan previously had no gate
+  requiring it say anything at all.
+- Claude's `rules/server-actions.md` and `rules/transport-patterns.md` had
+  drifted into two overlapping, inconsistent descriptions of the same
+  `server-actions` pattern. Split cleanly by scope again, matching the
+  Copilot adapter's `server-actions.instructions.md` /
+  `transport.instructions.md` split. Added `rules/frontend.md` (Claude) to
+  close the remaining gap with Copilot's `frontend.instructions.md`.
+- `scripts/self-test.mjs` now runs a structural Claude/Copilot adapter
+  parity check (every rule/skill/agent/prompt topic must exist on both
+  sides) as part of `homero`'s own CI, not just as a manual-authoring
+  convention.
+
 ## 0.2.0
 
 - **Breaking: `homero.config.json` now records `homeroClient`** (`claude`,

@@ -141,7 +141,10 @@ What's actually built, as of this writing:
   events.ndjson audit trail) — not just file scaffolding.
 - A portable core template plus two adapters (Claude, Copilot) kept at
   content parity by hand: same 7 agent roles, same rules, same two
-  design-system skills, translated per client's own format.
+  design-system skills, translated per client's own format. `self-test.mjs`
+  now runs a structural check (every topic exists on both sides) in CI, so a
+  whole file silently missing on one adapter fails the build; wording-level
+  parity is still hand-maintained.
 - Local deterministic generation for forms (`generate form`) and for the
   Tomaco component catalog (`generate catalog`, reads the real installed
   package so the inventory can't silently drift from what's actually shipped).
@@ -155,17 +158,24 @@ What's still genuinely rough:
   conventions before asking — a brownfield install gets the same generic
   questions as a greenfield one.
 - **Verification gates are still mostly existence/boolean checks**, not deep
-  content checks, though two of the weakest spots got real fixes:
+  content checks, though three of the weakest spots got real fixes:
   `contracts.mocks.registered` used to only need to be `true`, with no check
   that `mocks.source` pointed at a real file — `feature check` now fails if it
   doesn't. `requirements.uiStates` used to only need to be non-empty, which the
   shipped template's own generic default already satisfied — `feature check`
   now rejects that exact default array, forcing principle 14's "screen-specific
   states, not the starting checklist" into something enforced, not just
-  written down. What's still unchecked: whether the mock's actual *shape*
-  matches the recorded contract, and whether the *feature spec* is internally
-  consistent. `homero verify` running your real lint/typecheck/test/e2e
-  commands remains the genuinely executable part.
+  written down. `plan.md` used to have no gate at all — any of its sections
+  could stay the shipped template's placeholder forever and nothing noticed;
+  `feature check`/`run`/`verify` now reject a plan whose required sections
+  (Tomaco components/tokens, pixel-perfect styling, files to change, form/
+  validation, Figma adaptation) still match the unedited template, per
+  principle 18. What's still unchecked in all three cases: whether the
+  content is actually *correct* — a plausible-sounding fabricated Tomaco
+  component name or a made-up padding value passes exactly as well as a real
+  one, and whether the mock's actual *shape* matches the recorded contract.
+  `homero verify` running your real lint/typecheck/test/e2e commands remains
+  the genuinely executable part.
 - **No worked example ships with the repo.** There's no sample
   `specs/<id>-<slug>/` or `features/<id>/` with realistic content — a
   first-time reader has to infer the expected level of detail from

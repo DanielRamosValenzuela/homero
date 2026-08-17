@@ -3,6 +3,15 @@
     "figma": {
       "type": "http",
       "url": "https://mcp.figma.com/mcp"
+    },
+    "_tomaco-mcp-server-comment": "OPTIONAL, disabled by default — live component/prop/CSS-class validation for tomaco-components (14 tools: get_component_info, validate_props, get_utility_classes, get_theming_info, get_changelog, etc.). Maintained by the Tomaco design-system team, not by Homero — ask them whether it's deployed for your org before enabling it. To enable: rename the sibling key below from 'tomaco-mcp-server-disabled' to 'tomaco-mcp-server' and set a real NPM_REGISTRY_TOKEN (not needed if tomaco-components is already installed locally). See references/css-utilities.md in the tomaco-design-system skill for what it adds over the static reference, and the skill's 'Tomaco MCP (optional)' note for how agents should use it once enabled.",
+    "tomaco-mcp-server-disabled": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "tomaco-mcp-server"],
+      "env": {
+        "NPM_REGISTRY_TOKEN": "__YOUR_NPM_REGISTRY_TOKEN__"
+      }
     }
   }
 }

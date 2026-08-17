@@ -40,7 +40,7 @@ Claude adapter:
 
 - `.claude/commands/homero.md`
 - `.claude/agents/*.md`
-- `.claude/rules/*.md` (forms, tomaco, server-actions, step-widgets, transport-patterns)
+- `.claude/rules/*.md` (forms, frontend, tomaco, server-actions, step-widgets, transport-patterns)
 - `.claude/skills/new-form/`, `.claude/skills/new-step/`, `.claude/skills/figma-to-component/`
 - `.claude/skills/seguros-falabella-ui-ux/`, `.claude/skills/tomaco-design-system/`
 
@@ -51,7 +51,11 @@ Copilot `applyTo`-triggered instructions — Copilot has no skills concept, so
 its equivalents are plain instruction files referenced by path instead of
 invoked by name). `homero validate`/`upgrade` only check that a client's own
 template tree is present in the target repo; they do not check cross-client
-parity, so that parity is a manual-authoring invariant, not a CLI-enforced one.
+parity. `scripts/self-test.mjs` runs a structural pairing check (every rule
+topic — forms, frontend, server-actions/transport, step-widgets, the two
+design-system skills — has a file on both sides) so a whole topic silently
+missing on one adapter fails CI; it cannot verify the two sides say the same
+thing, so wording-level content parity is still a manual-authoring invariant.
 
 Workflow roles are defined in `docs/homero/agent-roles.md`. Concrete custom
 agents are adapter-level because each AI client has its own agent file format and

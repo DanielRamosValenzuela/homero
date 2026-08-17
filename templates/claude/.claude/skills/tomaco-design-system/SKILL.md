@@ -34,6 +34,21 @@ manually-verified list of behavioral traps (misleading defaults, silent
 truncation, hardcoded ids, props that compile but do nothing) that no generated
 catalog or `.d.ts` file will surface.
 
+For CSS utility classes, the grid, and color tokens, use
+`references/css-utilities.md` — an exhaustive positive reference (patterns and
+ranges, not just traps), verified against the real `styles/*.sass` sources and
+cross-checked against the design system's own upstream skill. It documents two
+Tomaco-specific grid overrides that don't match stock Bootstrap (containers
+capped at 1152px past `lg`, and a 32px default row gutter) — read it before
+assuming a Bootstrap-familiar grid value applies unchanged.
+
+**The npm package and the deployed stylesheet are versioned independently.**
+`tomaco-components` (your lockfile) governs components and TypeScript props;
+the `tomaco-ui.css` deployed to static hosts governs which CSS classes exist at
+runtime — they are not guaranteed to be on the same patch. See
+`references/css-utilities.md` for both static URLs (QA and Production) and
+what to do when they might disagree.
+
 ## Resolution order
 
 Work down this list and stop at the first source that answers the question. Say which
@@ -52,6 +67,14 @@ one you used.
 4. **Existing usage in this repo.** Grep for imports of the package. A component
    already used in production code with a given prop set is confirmed evidence.
 5. **Nothing confirmed it.** Say so and ask. Do not proceed to invent an API.
+
+**Tomaco MCP (optional, ask before assuming it's there).** The design-system
+team also ships a separate `tomaco-mcp-server` with live component/prop/CSS
+query tools — not installed by default in this harness (`mcp.example.json`
+shows it as a commented example, not a live entry). If a project's workspace
+has it configured, it's a strong signal for anything version-sensitive and can
+sit ahead of step 2 above; if it isn't configured, don't claim to have queried
+it.
 
 ## Answering "does Tomaco already have X?"
 

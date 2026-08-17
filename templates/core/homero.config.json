@@ -60,7 +60,7 @@
   "runtime": {
     "maxIterations": 10,
     "maxAttemptsPerTask": 3,
-    "maxVerifyAttempts": 3
+    "maxVerifyAttempts": 2
   },
   "agents": {
     "workflow": "discover -> specify -> plan -> tasks -> implement -> verify -> converge",

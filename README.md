@@ -217,7 +217,7 @@ stateDiagram-v2
     implementing --> exhausted: se alcanza runtime.maxIterations
     implementing --> verifying: todas las tareas quedaron done
     verifying --> verifying: homero verify falla (intento < límite)
-    verifying --> verify_exhausted: homero verify falla runtime.maxVerifyAttempts veces (3 por defecto)
+    verifying --> verify_exhausted: homero verify falla runtime.maxVerifyAttempts veces (2 por defecto)
     verify_exhausted --> implementing: humano da instrucciones específicas
     verifying --> needs_review: homero verify pasa (genera receipt)
     needs_review --> accepted: humano revisa y mergea
@@ -229,7 +229,7 @@ stateDiagram-v2
 `blocked`, `exhausted` y `verify-exhausted` no son callejones sin salida: son
 la señal de que hay que mirar el feature a mano en vez de seguir
 reintentando a ciegas. `verify-exhausted` corta el loop apenas `homero
-verify` falla 3 veces seguidas (`runtime.maxVerifyAttempts`) — a partir de
+verify` falla 2 veces seguidas (`runtime.maxVerifyAttempts`) — a partir de
 ahí, `homero verify` se niega a correr de nuevo hasta que un humano revise
 el receipt y arregle algo puntual o cambie el límite.
 
@@ -279,16 +279,22 @@ specs/FEAT-042-cotizador-de-vida/
 `feature.json` nace en estado `draft`. Complétalo antes de pedir
 implementación: criterios de aceptación, preguntas abiertas resueltas, mocks
 de desarrollo (si consume backend), estados de carga/éxito/vacío/error, y
-Figma + versión aprobados. Luego:
+Figma + versión aprobados. `specs/<id>/plan.md` también nace con placeholders
+vacíos — hay que llenarlo con los componentes de Tomaco exactos, sus tokens,
+y el detalle pixel-perfect (paddings, layout, breakpoints) de cada pantalla
+antes de que pase el gate (principio 18 de `docs/homero/constitution.md`).
+Luego:
 
 ```powershell
 node scripts/homero/homero.mjs feature check --target . --id FEAT-042
 ```
 
-Bloquea el trabajo si falta Figma, contrato, mocks, criterios, evidencia, o si
-no estás parado en la rama del feature. Este mismo chequeo se vuelve a correr
-por dentro cada vez que uses `homero run`, así que un feature incompleto nunca
-llega a la etapa de implementación.
+Bloquea el trabajo si falta Figma, contrato, mocks, criterios, evidencia, o
+alguna sección requerida de `plan.md` (componentes/tokens de Tomaco, estilos
+pixel-perfect, archivos a crear o modificar, plan de formulario/validación,
+adaptación de Figma), o si no estás parado en la rama del feature. Este mismo
+chequeo se vuelve a correr por dentro cada vez que uses `homero run`, así que
+un feature incompleto nunca llega a la etapa de implementación.
 
 ### 3. Trabajar el feature — el loop de tareas
 
