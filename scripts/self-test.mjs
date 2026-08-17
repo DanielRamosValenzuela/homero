@@ -157,7 +157,8 @@ const pairedAdapterTopics = [
   ["entry command", "commands/homero.md", "prompts/homero.prompt.md"],
   ["discover command", "commands/homero-discover.md", "prompts/homero-discover.prompt.md"],
   ["plan command", "commands/homero-plan.md", "prompts/homero-plan.prompt.md"],
-  ["implement command", "commands/homero-implement.md", "prompts/homero-implement.prompt.md"]
+  ["implement command", "commands/homero-implement.md", "prompts/homero-implement.prompt.md"],
+  ["review-plan command", "commands/homero-review-plan.md", "prompts/homero-review-plan.prompt.md"]
 ];
 
 for (const role of ["contracts", "coordinator", "discovery", "figma", "implementer", "planner", "reviewer"]) {

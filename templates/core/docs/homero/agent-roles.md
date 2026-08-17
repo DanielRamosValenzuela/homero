@@ -47,6 +47,6 @@ agents, subagents, skills, prompts, or instructions.
 
 ## Reviewer agent
 
-- Reviews the implementation against spec, plan, tasks, Figma, contracts, and verification rules.
+- Runs in two modes: plan mode (optional, before implementation — audits `spec.md`/`plan.md` for internal consistency in a fresh session, no leftover planning-conversation context) and implementation mode (reviews the implementation against spec, plan, tasks, Figma, contracts, and verification rules).
 - Reports correctness gaps, missing tests, risky assumptions, and scope drift.
 - Does not report style preferences as blockers.

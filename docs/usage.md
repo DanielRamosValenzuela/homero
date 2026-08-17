@@ -21,7 +21,9 @@ flowchart TD
     E --> F["Figma, contrato, mocks, criterios<br/>+ specs/&lt;id&gt;/plan.md pixel-perfect"]
     F --> G{"homero feature check"}
     G -- "falta algo" --> F
-    G -- "pasa" --> P["⏸ Checkpoint de plan<br/>humano revisa specs/&lt;id&gt;/plan.md"]
+    G -- "pasa" --> RP["(opcional) /homero-review-plan<br/>homero-reviewer audita el plan, sesión limpia"]
+    RP -.-> P
+    G -.-> P["⏸ Checkpoint de plan<br/>humano revisa specs/&lt;id&gt;/plan.md"]
     P --> H["Loop de tareas<br/>task add / homero run / task verify / task block"]
     H -- "quedan tareas" --> H
     H -- "todas done" --> I{"homero verify<br/>lint · typecheck · test · e2e"}
@@ -247,6 +249,16 @@ tareas ni delega en `homero-implementer` hasta que vos digas que sigas
 (constitution.md principio 9). `/homero-plan` siempre se detiene ahí;
 `/homero-implement` asume que ya lo revisaste; `/homero` hace las dos cosas
 pero también pausa ahí por default.
+
+Antes de aprobar, opcionalmente podés correr `/homero-review-plan <id>`:
+arranca una sesión nueva, sin la conversación de planificación acumulada
+(que puede ser larga — Figma, contrato, varias vueltas), lee
+`spec.md`/`plan.md`/`feature.json` tal cual quedaron en disco, y delega en
+`homero-reviewer` en modo plan para auditar consistencia interna (¿los
+componentes de Tomaco que nombra realmente encajan? ¿el plan técnico
+contradice algo del spec? ¿quedó una pregunta abierta sin resolver?). No es
+un gate de CLI — es una segunda opinión barata (sesión limpia, sin arrastrar
+contexto) que podés pedir o saltarte.
 
 ### 1. Crear el feature
 

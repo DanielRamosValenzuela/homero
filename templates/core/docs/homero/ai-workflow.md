@@ -24,6 +24,12 @@ This checkpoint maps directly to the command surface:
 
 - `/homero-plan` runs discover (if needed) through plan, then stops there by
   design — it never creates tasks or calls `homero-implementer`.
+- `/homero-review-plan` is optional: a fresh session that reads
+  `specs/<id>/spec.md`/`plan.md`/`feature.json` off disk and audits them for
+  internal consistency with `homero-reviewer` (plan mode) — not a CLI gate,
+  just a second opinion the human can ask for before approving, cheap
+  precisely because it starts clean instead of inheriting however long the
+  planning conversation ran.
 - `/homero-implement` picks up an already-planned feature (its plan must
   already pass `feature check`) and drives tasks through verify.
 - `/homero` does both in one command, but still pauses at the plan

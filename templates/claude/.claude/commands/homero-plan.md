@@ -18,6 +18,8 @@ Run `homero feature check` yourself to confirm the plan actually passes.
 **Stop here.** Do not run `homero task add`, do not call `homero-implementer`,
 do not run the task loop or `homero verify` — this command is planning only,
 the same way `/homero-discover` is discovery only. Report the feature id,
-where the plan lives, and a short summary, and tell the human to review it
-and run `/homero-implement <id>` (or `/homero` again) when they're ready —
-even if the plan looks obviously complete and correct to you.
+where the plan lives, and a short summary, and tell the human to review it —
+optionally with `/homero-review-plan <id>` for a fresh-session audit for
+internal consistency first — and run `/homero-implement <id>` (or `/homero`
+again) when they're ready, even if the plan looks obviously complete and
+correct to you.

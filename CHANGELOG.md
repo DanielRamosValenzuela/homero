@@ -5,6 +5,16 @@ explaining version boundaries that change `homero upgrade`'s behavior, not a
 full history of every change. Run `homero version --target .` to see what
 your install is actually on.
 
+## 0.6.0
+
+- **New required template files**: `.claude/commands/homero-review-plan.md`
+  (Claude) and `.github/prompts/homero-review-plan.prompt.md` (Copilot) — an
+  optional, non-gating command that starts a fresh session and delegates to
+  `homero-reviewer` in a new "plan mode" to audit `spec.md`/`plan.md` for
+  internal consistency before you approve them, without inheriting whatever
+  context the planning conversation accumulated. `homero-reviewer` itself
+  now documents two modes (plan / implementation) instead of one.
+
 ## 0.5.0
 
 - **Breaking: the workflow now has a mandatory plan checkpoint.**
