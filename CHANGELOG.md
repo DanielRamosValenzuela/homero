@@ -5,6 +5,19 @@ explaining version boundaries that change `homero upgrade`'s behavior, not a
 full history of every change. Run `homero version --target .` to see what
 your install is actually on.
 
+## 0.16.1
+
+- **Fix: `/homero-discover`'s closing report overstepped into feature-planning
+  territory.** After a real run, the coordinator's "next step" wrap-up
+  proposed a specific guessed feature name/id and offered "start the plan
+  assuming a basic mock" as an option while Figma wasn't available yet —
+  discovery inventing exactly the kind of shortcut constitution.md principle
+  2 forbids, and deciding something that isn't discovery's call to make.
+  `/homero-discover` (both clients) now has an explicit closing-report
+  instruction: report what was recorded, then one plain sentence pointing at
+  `/homero-plan`/`/homero` — no guessed feature name, no menu of options, no
+  Figma-less/mocked shortcut "in the meantime."
+
 ## 0.16.0
 
 Real-world report: running `/homero-discover` on Copilot put the human in a

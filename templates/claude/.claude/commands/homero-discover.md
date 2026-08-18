@@ -29,3 +29,14 @@ Do not create a feature, and do not start implementing anything — this
 command is discovery only. If `homero.config.json` already looks discovered,
 say so and ask whether the human wants to re-run it with `--force` before
 doing anything else.
+
+**Closing report.** Once `discover` finishes, report what was recorded and
+stop there — say what comes next in one plain sentence: run `/homero-plan
+<Figma URL> <intent>` (or `/homero` for the combined flow) once there's a
+real feature to build. Do not guess or propose a specific feature name, id,
+or business area — that is not discovery's call to make, even if the
+human's answers mentioned a product area in passing. Do not offer a
+menu of options for how to proceed, and never suggest starting a plan
+without Figma or with an assumed/mock design "in the meantime" — Figma is
+mandatory for visual work (constitution.md principle 2), and there is no
+shortcut version of that rule, not even to save a round-trip.
