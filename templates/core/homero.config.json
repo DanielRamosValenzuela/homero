@@ -73,7 +73,7 @@
       "homero-reviewer"
     ],
     "models": {
-      "_comment": "Per-agent model pins, by what the role actually does. An empty string emits no model key at all, which is the only value that honors the user's own model picker. claude: only Claude models resolve — inherit|opus|sonnet|haiku|fable or a claude-* id; a GPT name will NOT resolve there. copilot: the friendly name exactly as it appears in the Copilot model picker (any vendor). Three tiers: explorar/cheapest (haiku, GPT-5.6 Luna) for discovery and contracts — they read and report, they don't decide; ejecucion/mid (sonnet, GPT-5.6 Terra) for planner and implementer — they produce the deliverable from what's already been gathered; pensar/strongest (opus, GPT-5.6 Sol) for figma and reviewer — the two agents whose mistakes nobody downstream can catch. Coordinator stays unpinned (inherit / empty string) so it always follows the user's own model picker. NOTE: Sol needs Copilot Pro+/Max/Business/Enterprise, and on Business/Enterprise an admin must enable the GPT-5.6 model policy (off by default) — otherwise the pin degrades silently to the picker default. The cloud coding agent may ignore the key entirely.",
+      "_comment": "Per-agent model pins, by what the role actually does. An empty string emits no model key at all, which is the only value that honors the user's own model picker. claude: only Claude models resolve — inherit|opus|sonnet|haiku|fable or a claude-* id; a GPT name will NOT resolve there. copilot: MUST be the exact string shown in your own Copilot model picker UI — this varies by org/subscription/plan and changes over time, so Homero ships every copilot pin empty by default rather than guess a name that might not exist (an unresolvable model value silently falls back to whatever Copilot's own default is, which is confusing to debug — this happened once already, see CHANGELOG 0.16.0). Three tiers by what the role actually does, for when you DO want to fill these in with your own real model names: explore/cheapest for discovery and contracts — they read and report, they don't decide; execute/mid for planner and implementer — they produce the deliverable from what's already been gathered; think/strongest for figma and reviewer — the two agents whose mistakes nobody downstream can catch. Coordinator always stays unpinned (inherit / empty string) so it always follows the user's own model picker — it is the only agent a human ever talks to directly (docs/homero/agent-roles.md), so it must never be pinned to something cheaper than what the human chose.",
       "claude": {
         "homero-coordinator": "inherit",
         "homero-discovery": "haiku",
@@ -85,12 +85,12 @@
       },
       "copilot": {
         "homero-coordinator": "",
-        "homero-discovery": "GPT-5.6 Luna",
-        "homero-figma": "GPT-5.6 Sol",
-        "homero-contracts": "GPT-5.6 Luna",
-        "homero-planner": "GPT-5.6 Terra",
-        "homero-implementer": "GPT-5.6 Terra",
-        "homero-reviewer": "GPT-5.6 Sol"
+        "homero-discovery": "",
+        "homero-figma": "",
+        "homero-contracts": "",
+        "homero-planner": "",
+        "homero-implementer": "",
+        "homero-reviewer": ""
       }
     }
   }

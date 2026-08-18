@@ -5,6 +5,39 @@ explaining version boundaries that change `homero upgrade`'s behavior, not a
 full history of every change. Run `homero version --target .` to see what
 your install is actually on.
 
+## 0.16.0
+
+Real-world report: running `/homero-discover` on Copilot put the human in a
+direct chat with Claude Haiku, not the expected cheap-GPT tier. Two
+compounding bugs, both Copilot-specific:
+
+- **Breaking: `agents.models.copilot`'s per-role pins ("GPT-5.6 Luna" /
+  "GPT-5.6 Terra" / "GPT-5.6 Sol") were never real Copilot model-picker
+  names** — they were shorthand invented for the tier *concept*
+  (explore/execute/think), mistakenly written into the config as if they
+  were literal, selectable values. An unresolvable `model:` value in a
+  Copilot agent's frontmatter falls back silently to whatever Copilot's own
+  default is, which is how a Copilot session ended up in Claude Haiku. Every
+  `agents.models.copilot` pin now ships empty (`""`, same as
+  `homero-coordinator` already was) — Copilot's real model-picker names are
+  org/subscription-specific and change over time, so Homero can't safely
+  guess one; the `_comment` explains how to fill them in with your own
+  real names if you want per-role tiering. Only affects new installs/
+  upgrades that pick up the template default; an already-configured repo's
+  own recorded values are untouched.
+- **Fix: `homero-coordinator.agent.md` (Copilot) had a `handoffs:` block**
+  ("Start Discovery" → `homero-discovery`, "Review Implementation" →
+  `homero-reviewer`) that let the human jump directly into a sub-agent's
+  chat, bypassing the coordinator entirely — the actual mechanism that put
+  the human in `homero-discovery`'s (broken) model pin instead of the
+  coordinator's unpinned one. This contradicted an intended design rule that
+  was never actually written down anywhere: the human only ever talks to
+  `homero-coordinator`; every other agent works in the background and
+  reports back to it. Removed the `handoffs:` block; added this as
+  constitution.md principle 20 and a bullet in `agent-roles.md`'s
+  Coordinator section, on both clients, so no future template edit
+  re-introduces a direct human-to-subagent path.
+
 ## 0.15.0
 
 A full-project audit (6 parallel finders, every finding independently

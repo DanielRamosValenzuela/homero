@@ -6,6 +6,13 @@ agents, subagents, skills, prompts, or instructions.
 ## Coordinator
 
 - Owns the end-to-end Homero workflow.
+- **Is the only agent the human talks to.** Every other role below runs in
+  the background and reports back to it — no client adapter should expose a
+  way for the human to converse with a sub-agent directly (e.g. a UI
+  handoff, or direct invocation). Sub-agents are often pinned to a cheaper
+  or different model on purpose (`homero.config.json` `agents.models`); a
+  direct human-to-subagent conversation silently changes which model the
+  human is actually talking to, which is confusing to notice and to debug.
 - Delegates focused work to specialized agents when available.
 - Keeps the main context focused on decisions, artifacts, and next actions.
 - Stops for human review once the plan passes `feature check`, before

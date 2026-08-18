@@ -439,6 +439,13 @@ flowchart TD
     C --> NR["📋 needs-review<br/>humano aprueba y mergea"]
 ```
 
+Vos siempre hablás con `homero-coordinator`, nunca directo con un sub-agente
+— cada uno corre en segundo plano y le reporta a él (constitution.md
+principio 20). Los sub-agentes suelen tener un modelo distinto fijado a
+propósito (`homero.config.json` `agents.models`); si algo te pusiera a
+hablar directo con uno, terminarías conversando con ese modelo sin darte
+cuenta.
+
 `homero-figma` es el único agente con acceso al MCP de Figma — los demás
 dependen de lo que él devuelve. `homero-implementer` es el único que edita
 archivos de producto. Si tu cliente de IA no soporta agentes personalizados,
