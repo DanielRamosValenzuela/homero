@@ -488,6 +488,15 @@ if (!fs.existsSync(receiptsDir) || fs.readdirSync(receiptsDir).length === 0) {
   process.exit(1);
 }
 
+// Regression test: each check in a receipt must record how long it actually took — added so a
+// slow `homero verify` has real numbers to point at instead of a guess.
+const firstReceiptPath = path.join(receiptsDir, fs.readdirSync(receiptsDir)[0]);
+const firstReceipt = JSON.parse(fs.readFileSync(firstReceiptPath, "utf8"));
+if (!Array.isArray(firstReceipt.checks) || firstReceipt.checks.length === 0 || firstReceipt.checks.some(check => typeof check.durationMs !== "number")) {
+  console.error(`Expected every check in the verification receipt to record a numeric durationMs, got: ${JSON.stringify(firstReceipt.checks)}`);
+  process.exit(1);
+}
+
 // No worktree: targetRoot itself should now be sitting on the feature branch.
 const featureBranch = spawnSync("git", ["branch", "--show-current"], { cwd: targetRoot, encoding: "utf8" }).stdout.trim();
 if (featureBranch !== "feature/FEAT-001-quote-form") {

@@ -28,7 +28,7 @@ const repoRoot = path.resolve(currentDir, "../../..");
 // scripts/homero/homero.mjs. `homero upgrade` compares it against the installed
 // homeroVersion to decide what to refresh. Kept in lockstep with package.json by
 // scripts/self-test.mjs — bump both together.
-const homeroVersion = "0.17.0";
+const homeroVersion = "0.18.0";
 
 function readArg(name) {
   const index = commandArgs.indexOf(name);
@@ -1569,6 +1569,9 @@ function featureCheckCommand() {
 }
 
 function runVerificationCommand(targetRoot, name, command) {
+  // Recorded so a slow `homero verify` has real numbers to point at instead of a guess —
+  // e.g. telling a project-wide e2e suite apart from a genuinely slow typecheck.
+  const startedAt = Date.now();
   const result = spawnSync(command, {
     cwd: targetRoot,
     shell: true,
@@ -1581,7 +1584,8 @@ function runVerificationCommand(targetRoot, name, command) {
     exitCode: result.status,
     stdout: result.stdout || "",
     stderr: result.stderr || "",
-    passed: result.status === 0
+    passed: result.status === 0,
+    durationMs: Date.now() - startedAt
   };
 }
 
@@ -1628,7 +1632,8 @@ function verifyFeature() {
         exitCode: null,
         stdout: "",
         stderr: `Missing homero.config.json commands.${commandName}`,
-        passed: false
+        passed: false,
+        durationMs: 0
       });
       continue;
     }

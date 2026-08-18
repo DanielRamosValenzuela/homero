@@ -5,6 +5,44 @@ explaining version boundaries that change `homero upgrade`'s behavior, not a
 full history of every change. Run `homero version --target .` to see what
 your install is actually on.
 
+## 0.18.0
+
+Real-world report: implementation took about an hour for a single-screen
+feature. Read `verifyFeature()`'s actual code instead of guessing at the
+cause and found a real, confirmed structural cost:
+
+- **`homero verify` re-runs the entire project's `commands.lint`/
+  `typecheck`/`test`/`e2e` on every attempt** — there was never any
+  per-feature or per-file scoping, so a failed attempt (up to
+  `maxVerifyAttempts`, default 2) re-pays the full project-wide cost again,
+  not just the part that failed.
+- **`homero-implementer`'s "focused validation after edits" was never
+  actually defined**, which made it easy to read as "run the same
+  project-wide `homero.config.json` commands after every task" — on a plan
+  with several tasks, that's the full-project cost paid once per task
+  instead of once per feature, which very plausibly dominates the wall
+  clock on anything past a trivial change.
+
+Fixes:
+
+- `homero-implementer` (both clients) now defines "focused" explicitly:
+  lint/typecheck scoped to the file(s) the task actually touched (e.g.
+  `eslint <file>`, not the project-wide `commands.lint`), and only the
+  Playwright CLI scenario(s) that task needs. The full `commands.lint`/
+  `typecheck`/`test`/`e2e` stay `homero verify`'s job, once, at the end.
+- Verification receipts now record `durationMs` per check (`homero verify`,
+  `packages/cli/bin/homero.mjs`'s `runVerificationCommand()`) — so the next
+  "why is this slow" question has real numbers per command instead of a
+  guess, with a regression test pinning the field's presence.
+
+Deliberately not changed yet: scoping the final `homero verify` gate's
+`test`/`e2e` commands to just the feature's own files. That would cut real
+wall-clock time but also cuts regression coverage of everything else the
+change might have touched, and reliably mapping "which test files belong to
+this feature" isn't something a zero-dependency, framework-agnostic CLI can
+assume — worth revisiting with real `durationMs` numbers from an actual
+receipt once the above two ship, not before.
+
 ## 0.17.0
 
 A second real feature build got much closer to Figma (the plan-checkpoint
