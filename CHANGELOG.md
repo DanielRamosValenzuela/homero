@@ -5,6 +5,23 @@ explaining version boundaries that change `homero upgrade`'s behavior, not a
 full history of every change. Run `homero version --target .` to see what
 your install is actually on.
 
+## 0.18.1
+
+- **Fix: a measured Figma spacing value could get applied on top of a Tomaco
+  component's own default padding, producing *more* space than Figma shows,
+  not the same amount.** 0.17.0 made `homero-figma` measure exact container/
+  card padding via `get_variable_defs` — but a measured value is the
+  *rendered result*, which may already include spacing the chosen Tomaco
+  component provides by default. Nothing checked whether the component
+  already accounted for some of that spacing before treating the full
+  measured number as additional wrapper CSS to add. `homero-figma` (both
+  clients) now records whether the component already provides some/all of a
+  measured spacing value (checking `tomaco-design-system`'s component
+  reference/gotchas) instead of reporting the raw number as if it were
+  automatically extra CSS; `homero-implementer` (both clients) now confirms
+  this itself before adding wrapper padding/margin around a Tomaco
+  component, rather than applying a measured value as-is.
+
 ## 0.18.0
 
 Real-world report: implementation took about an hour for a single-screen
