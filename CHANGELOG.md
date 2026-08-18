@@ -5,6 +5,41 @@ explaining version boundaries that change `homero upgrade`'s behavior, not a
 full history of every change. Run `homero version --target .` to see what
 your install is actually on.
 
+## 0.17.0
+
+A second real feature build got much closer to Figma (the plan-checkpoint
+and branch/discover fixes from 0.16.x clearly helped — the plan itself
+"asked things I hadn't even noticed"), but three concrete defects remained,
+all traced to the same root cause: `homero-figma` was describing the design
+qualitatively instead of extracting exact values, so `plan.md` had nothing
+precise for `homero-implementer` to work from and it had to guess:
+
+- A banner that should have been a green/positive Alert shipped yellow —
+  the color was never actually extracted, just described as "an info box."
+- A house icon next to the screen title never shipped at all — not
+  downloaded, not mapped to a Tomaco icon, not even flagged as a question.
+  Small inline icons were falling through the cracks of an instruction that
+  only mentioned "images/icons/illustrations" in the abstract.
+- A card that should have been narrow and visually contained (border,
+  shadow, centered) shipped full-width with no visible boundary — its
+  dimensions were assumed to match the page's outer layout instead of being
+  measured on their own.
+
+`homero-figma` (both clients) now has three new hard requirements, each
+tied to the real defect it closes: call `get_variable_defs` before writing
+the component mapping and record the exact token/hex for every colored
+surface (documented Figma MCP best practice, not a Homero invention);
+resolve every icon-shaped node to exactly one of Tomaco `iconName` /
+downloaded asset / open question, with the same enumeration rigor already
+required for form fields; and measure each screen-level card's own exact
+width/padding/radius/shadow instead of assuming it matches the outer page
+layout. `homero-planner` (both clients) now must carry those exact values
+through into `plan.md` verbatim rather than a rephrased summary, and treat
+any remaining vagueness as an "Open questions and critique" item instead of
+passing it through unflagged. `homero-reviewer`'s plan mode (both clients)
+now flags a `plan.md` with qualitative color/icon/dimension language as a
+blocking finding, same severity as an unconfirmed interactive element.
+
 ## 0.16.1
 
 - **Fix: `/homero-discover`'s closing report overstepped into feature-planning
