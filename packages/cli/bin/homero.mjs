@@ -28,7 +28,7 @@ const repoRoot = path.resolve(currentDir, "../../..");
 // scripts/homero/homero.mjs. `homero upgrade` compares it against the installed
 // homeroVersion to decide what to refresh. Kept in lockstep with package.json by
 // scripts/self-test.mjs — bump both together.
-const homeroVersion = "0.11.0";
+const homeroVersion = "0.12.0";
 
 function readArg(name) {
   const index = commandArgs.indexOf(name);
@@ -1081,6 +1081,27 @@ function gitText(targetRoot, args) {
   return result.status === 0 ? result.stdout.trim() : null;
 }
 
+function mainBranchName(targetRoot) {
+  // Prefer the remote's actual default branch when one is configured; falls back to whichever
+  // of the two common names actually exists locally, then to "main" as a last resort — this
+  // never needs to be exactly right, only good enough to stop `feature create` running on it.
+  const symbolicRef = gitText(targetRoot, ["symbolic-ref", "refs/remotes/origin/HEAD"]);
+  if (symbolicRef) {
+    const match = symbolicRef.match(/^refs\/remotes\/origin\/(.+)$/);
+    if (match) {
+      return match[1];
+    }
+  }
+
+  for (const candidate of ["main", "master"]) {
+    if (gitText(targetRoot, ["rev-parse", "--verify", "--quiet", `refs/heads/${candidate}`]) !== null) {
+      return candidate;
+    }
+  }
+
+  return "main";
+}
+
 function ensureCleanGitRepo(
   targetRoot,
   reason = "homero feature create requires a clean working tree to keep the feature branch isolated.",
@@ -1436,23 +1457,30 @@ function featureCreate() {
 
   ensureCleanGitRepo(
     targetRoot,
-    "homero feature create requires a clean working tree — it checks out a new branch in place, and uncommitted changes would carry into it."
+    "homero feature create requires a clean working tree — it writes spec/plan/task files into the branch you already have checked out, and uncommitted changes would get mixed in with them."
   );
 
-  const branch = `feature/${id}-${slugify(name)}`;
-  // No worktree: this checks out the new branch in targetRoot itself, the same directory the
-  // human already has open. That's a deliberate trade — one feature checked out at a time, no
-  // working on another branch while this one is in flight — in exchange for specs/<id>/plan.md
-  // being visible in the editor the human already has open, instead of a sibling directory.
-  const checkoutResult = git(targetRoot, ["checkout", "-b", branch]);
-  if (checkoutResult.status !== 0) {
-    // stderr/error are both possibly undefined here, not just empty — spawnSync leaves them
-    // unset (not "") when git itself fails to spawn (e.g. missing from PATH) rather than
-    // running and exiting non-zero.
-    const reason = (checkoutResult.stderr || checkoutResult.error?.message || "unknown error").trim();
-    fail(`Could not create branch ${branch}: ${reason}`);
+  // No worktree, and no branch creation either: the human checks out their own feature branch
+  // before running this (that's the point of the plan checkpoint being reachable from
+  // /homero-plan without homero having to guess a branch name up front). This only refuses to
+  // run on the main branch, so a feature never accidentally gets built directly on it.
+  const currentBranch = gitText(targetRoot, ["branch", "--show-current"]);
+  if (!currentBranch) {
+    fail(
+      "homero feature create requires an existing branch to be checked out (not a detached HEAD). " +
+        `Create one first: git checkout -b feature/${id}-${slugify(name)}`
+    );
   }
 
+  const mainBranch = mainBranchName(targetRoot);
+  if (currentBranch === mainBranch) {
+    fail(
+      `homero feature create no longer creates a branch for you — check out a feature branch first ` +
+        `(git checkout -b feature/${id}-${slugify(name)}), then run this again. You're currently on ${mainBranch}.`
+    );
+  }
+
+  const branch = currentBranch;
   const paths = featurePaths(targetRoot, id, name);
 
   const feature = featureTemplate({
@@ -1501,7 +1529,7 @@ function featureCreate() {
     fillFeatureTemplate(templatePath, destinationPath, replacements);
   }
 
-  console.log(`Feature ${id} created on ${branch} (checked out in place — no worktree).`);
+  console.log(`Feature ${id} created on ${branch} (existing branch — homero did not create it).`);
   console.log(`Contract: ${path.relative(targetRoot, paths.featurePath)}`);
   console.log(`Spec: ${path.relative(targetRoot, path.join(paths.specDir, "spec.md"))}`);
   console.log("The feature remains draft until Homero gates pass.");

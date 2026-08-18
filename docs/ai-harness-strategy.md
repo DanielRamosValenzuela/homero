@@ -53,9 +53,10 @@ fewer, more deterministic pieces instead. Real lifecycle, phase by phase:
   is nothing to run separately.
 - **specify / plan / tasks** → not three commands. `homero feature create`
   copies `specs/_template/{spec,plan,tasks}.md` into `specs/<id>-<slug>/` in
-  one step, checking out a feature branch in place (no worktree — see the
-  0.11.0 CHANGELOG entry for why that changed). Filling those three files in
-  is a human/agent editing task (`homero-discovery` and `homero-planner` in
+  one step, writing into whatever non-main branch is already checked out (no
+  worktree, and no branch creation either — see the 0.11.0/0.12.0 CHANGELOG
+  entries for why that changed). Filling those three files in is a
+  human/agent editing task (`homero-discovery` and `homero-planner` in
   `docs/homero/agent-roles.md`), not something the CLI generates content for.
 - **implement** → `homero task add` to record tasks, then `homero run` /
   `homero task verify` / `homero task block` to drive the deterministic task

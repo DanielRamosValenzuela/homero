@@ -5,6 +5,38 @@ explaining version boundaries that change `homero upgrade`'s behavior, not a
 full history of every change. Run `homero version --target .` to see what
 your install is actually on.
 
+## 0.12.0
+
+- **Breaking: `homero feature create` no longer creates the feature branch —
+  it requires one to already be checked out.** 0.11.0 replaced the worktree
+  with an in-place `git checkout -b`, but that still meant the CLI, not the
+  human, decided the branch name and when it got created. Now the human (or
+  `homero-coordinator`, which checks first and asks rather than running
+  `checkout -b` itself) checks out a non-main branch before running `feature
+  create`; the command writes `features/<id>/`, the evidence manifest, and
+  `specs/<id>-<slug>/` straight into whatever branch is already active, and
+  refuses to run at all on the main branch (`mainBranchName()` reads the
+  remote's default branch when one exists, else falls back to `main`/
+  `master`). Detached HEAD also refuses. `docs/homero/verification.md`,
+  `docs/usage.md`, and both `homero-coordinator` templates updated to match.
+- **Fix: planning agents were treating visual obviousness as behavioral
+  clarity.** A plain button or a form toggle reads as self-explanatory, so
+  `homero-figma` and `homero-planner` weren't flagging them as open
+  questions even when nothing actually said what they *do* — a real case:
+  an "advisor mode" switch on a form shipped through `/homero-plan` with no
+  question asked about what it toggles. `homero-figma`'s and
+  `homero-reviewer`'s enumeration language (constitution.md principle 14)
+  now applies to every interactive element, not just the visually unusual
+  ones (tooltips, ghost buttons, accordions) it previously called out by
+  example. `homero-planner` now returns a separate "open questions and
+  critique" section — a critical re-read of spec.md/Figma output for
+  unconfirmed element behavior, implied-but-unconfirmed business rules, and
+  worthwhile alternatives, distinct from `homero-figma`'s own design-level
+  questions. `homero-coordinator` now must surface every item from both
+  lists in its plan-checkpoint report, not just the ones it judges
+  "blocking" — silently resolving an unclear element with a plausible
+  default is the exact failure this closes.
+
 ## 0.11.0
 
 - **Breaking: `homero feature create` no longer uses a git worktree.** It

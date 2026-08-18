@@ -19,17 +19,19 @@ Every non-trivial frontend feature must start with:
 node scripts/homero/homero.mjs feature create --target . --id <id> --name <name> --figma <url> --figma-version <version> --contract-mode <mode> ...
 ```
 
-It creates a local `feature/<id>-<slug>` branch without committing, plus:
+It requires a non-main branch to already be checked out — create one first
+(`git checkout -b feature/<id>-<slug>`) — then writes, on that branch:
 
 - `features/<id>/feature.json`: the executable feature contract
 - `features/<id>/evidence/playwright-cli.json`: browser evidence manifest
 - `specs/<id>-<slug>/`: human-readable spec, plan, and tasks
 
-**No worktree** — the feature branch is checked out in place, in the same
-directory `feature create` ran from. That means only one feature can be
-checked out at a time: the working tree must be clean before a new one is
-created, and switching to a different feature means checking out its branch
-first (`git checkout feature/<id>-<slug>`).
+**`feature create` does not create the branch itself, and there's no
+worktree** — it writes into whatever branch is already checked out, in the
+same directory it ran from. That means only one feature can be checked out
+at a time: the working tree must be clean before a new one is created, and
+switching to a different feature means checking out its branch first
+(`git checkout feature/<id>-<slug>`).
 
 `homero feature check` blocks a feature when Figma, Tomaco, contracts, development mocks, acceptance criteria, open questions, responsive coverage, or `plan.md`'s required sections are incomplete — everything needed to *start* implementing. It does not check Playwright CLI evidence: that can only exist once something has actually been implemented, so requiring it before implementation would make the gate impossible to pass. `homero verify` checks evidence, once there's something to verify.
 

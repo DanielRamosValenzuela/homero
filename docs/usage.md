@@ -277,18 +277,22 @@ node scripts/homero/homero.mjs feature create `
   --countries cl
 ```
 
-- El árbol Git debe estar limpio antes de correr esto — el comando hace
-  `git checkout -b` en el mismo directorio donde estás parado, sin worktree.
-  Eso significa: solo una feature a la vez por checkout. Si tenés otra en
-  curso sin commitear, commiteala (o hacé stash) antes de crear una nueva; y
-  para retomar una feature ya creada en otra sesión, primero cambiate a su
-  rama (`git checkout feature/FEAT-042-cotizador-de-vida`).
+- Antes de correr esto tenés que estar parado en una rama propia, no en la
+  principal (`git checkout -b feature/FEAT-042-cotizador-de-vida`) — el
+  comando ya no crea la rama por vos, solo escribe en la que ya tengas
+  activa. Si corrés esto sobre la rama principal, falla y te pide que crees
+  una rama primero.
+- El árbol Git debe estar limpio antes de correr esto. Eso significa: solo
+  una feature a la vez por checkout. Si tenés otra en curso sin commitear,
+  commiteala (o hacé stash) antes de crear una nueva; y para retomar una
+  feature ya creada en otra sesión, primero cambiate a su rama (`git checkout
+  feature/FEAT-042-cotizador-de-vida`).
 - `--countries` es obligatoria (lista separada por comas, ej. `cl,pe`) y queda
   registrada en `feature.json` como `product.countries` — toda feature debe
   declarar qué país(es) cubre.
 
-El comando queda parado en la misma carpeta, ya sobre la rama
-`feature/FEAT-042-cotizador-de-vida`. Ahí se generaron:
+El comando queda parado en la misma carpeta, sobre la rama que vos ya tenías
+activa. Ahí se generaron:
 
 ```text
 features/FEAT-042/
@@ -532,7 +536,7 @@ Usa `node scripts/homero/homero.mjs <comando> --help` para ver los argumentos di
 
 | Comando | Uso |
 | --- | --- |
-| `homero feature create` | Hace `git checkout -b` en el mismo directorio y crea los artefactos del feature. |
+| `homero feature create` | Exige estar en una rama propia (no la principal) ya creada, y crea los artefactos del feature ahí. |
 | `homero feature check` | Valida que el feature (contrato + plan) esté listo — es el gate del checkpoint. |
 | `homero verify` | Ejecuta lint/typecheck/test/e2e y genera el receipt. |
 

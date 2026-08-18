@@ -230,13 +230,32 @@ fs.writeFileSync(
 run(["setup", "playwright", "--target", targetRoot, "--dry-run"]);
 run(["generate", "form", "--target", targetRoot, "--name", "UserInfoForm", "--country", "cl"]);
 
-runGit(["init"]);
+// --initial-branch=main makes the base branch name deterministic regardless of the machine's
+// global init.defaultBranch config — mainBranchName()'s "main"/"master" fallback (used when
+// there's no origin remote to read the real default from) needs to actually match.
+runGit(["init", "--initial-branch=main"]);
 runGit(["add", "."]);
 runGit(["-c", "user.name=Homero Test", "-c", "user.email=homero@example.test", "commit", "-m", "chore: install homero"]);
-// No worktree: `feature create` now checks the feature branch out in targetRoot itself.
+// No worktree, and no branch creation either: `feature create` now requires the human to have
+// already checked out a non-main branch — it refuses to run on main.
 // Capture the base branch so later features in this same targetRoot (FEAT-002) can be
 // created from a clean base instead of stacking on the previous feature's tip.
 const baseBranch = spawnSync("git", ["branch", "--show-current"], { cwd: targetRoot, encoding: "utf8" }).stdout.trim();
+
+runExpectFailure([
+  "feature",
+  "create",
+  "--target", targetRoot,
+  "--id", "FEAT-001",
+  "--name", "Quote form",
+  "--figma", "https://www.figma.com/design/example/quote?node-id=1-2",
+  "--figma-version", "approved-v1",
+  "--contract-mode", "contract-draft",
+  "--contract-source", "docs/contracts/quote.openapi.yaml",
+  "--countries", "CL, pe"
+]);
+
+runGit(["checkout", "-b", "feature/FEAT-001-quote-form"]);
 run([
   "feature",
   "create",
@@ -805,6 +824,7 @@ if (!discoverMixedBusinessDoc.includes("cl, pe")) {
 // never calls a passing `verify` followed by `run` again — so these three runLoop() branches
 // were previously only ever reached by mutating state.json directly for other tests, never by
 // the command that is actually supposed to produce them.
+runGit(["checkout", "-b", "feature/FEAT-002-phase-transitions"]);
 run([
   "feature", "create",
   "--target", targetRoot,
@@ -931,13 +951,14 @@ if (phaseFeatureAfter.status !== "needs-review") {
 // both targetRoot. A copilot-only install never got this coverage — only init/validate/
 // generate-catalog/upgrade did — so a regression specific to the copilot-only path (e.g. a
 // template file only the "both"/"claude" adapters ship) could ship unnoticed.
-spawnSync("git", ["init"], { cwd: copilotClientRoot, stdio: "inherit" });
+spawnSync("git", ["init", "--initial-branch=main"], { cwd: copilotClientRoot, stdio: "inherit" });
 spawnSync("git", ["add", "."], { cwd: copilotClientRoot, stdio: "inherit" });
 spawnSync(
   "git",
   ["-c", "user.name=Homero Test", "-c", "user.email=homero@example.test", "commit", "-m", "chore: install homero"],
   { cwd: copilotClientRoot, stdio: "inherit" }
 );
+spawnSync("git", ["checkout", "-b", "feature/FEAT-900-copilot-only-lifecycle"], { cwd: copilotClientRoot, stdio: "inherit" });
 
 run([
   "feature", "create",
@@ -1142,7 +1163,7 @@ fs.writeFileSync(modelPinConfigPath, originalModelPinConfig, "utf8");
 const monorepoRoot = fs.mkdtempSync(path.join(os.tmpdir(), "homero-self-test-monorepo-"));
 const monorepoAppRoot = path.join(monorepoRoot, "apps", "web");
 fs.mkdirSync(monorepoAppRoot, { recursive: true });
-spawnSync("git", ["init"], { cwd: monorepoRoot, stdio: "inherit" });
+spawnSync("git", ["init", "--initial-branch=main"], { cwd: monorepoRoot, stdio: "inherit" });
 fs.writeFileSync(path.join(monorepoRoot, "README.md"), "# monorepo\n", "utf8");
 spawnSync("git", ["add", "."], { cwd: monorepoRoot, stdio: "inherit" });
 spawnSync(
@@ -1162,6 +1183,10 @@ spawnSync(
   ["-c", "user.name=Homero Test", "-c", "user.email=homero@example.test", "commit", "-m", "chore: install homero in apps/web"],
   { cwd: monorepoRoot, stdio: "inherit" }
 );
+
+// Checkout runs repo-wide (git doesn't scope branches to subdirectories), so this must happen
+// at monorepoRoot even though `--target` for `feature create` below is the app subfolder.
+spawnSync("git", ["checkout", "-b", "feature/FEAT-M01-monorepo-feature"], { cwd: monorepoRoot, stdio: "inherit" });
 
 run([
   "feature", "create",
