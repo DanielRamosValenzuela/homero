@@ -33,7 +33,9 @@ at a time: the working tree must be clean before a new one is created, and
 switching to a different feature means checking out its branch first
 (`git checkout feature/<id>-<slug>`).
 
-`homero feature check` blocks a feature when Figma, Tomaco, contracts, development mocks, acceptance criteria, open questions, responsive coverage, or `plan.md`'s required sections are incomplete — everything needed to *start* implementing. It does not check Playwright CLI evidence: that can only exist once something has actually been implemented, so requiring it before implementation would make the gate impossible to pass. `homero verify` checks evidence, once there's something to verify.
+`homero feature check` blocks a feature when the Figma URL/version/node, contracts, development mocks, acceptance criteria, open questions, responsive coverage, or `plan.md`'s required sections are incomplete — everything needed to *start* implementing. It does not check Playwright CLI evidence: that can only exist once something has actually been implemented, so requiring it before implementation would make the gate impossible to pass. `homero verify` checks evidence, once there's something to verify.
+
+Not everything the constitution requires is mechanically gated. `feature.json`'s `product.designSystem` field exists and is checked, but `feature create` always writes it as `"Tomaco"` — the check only guards against hand-corrupted `feature.json`, it does not verify Tomaco was actually used correctly in the implementation. `plan.md`'s "Repo patterns to reuse" section is required non-placeholder content (principle 15), which proves a reuse search was recorded — it does not verify the search's conclusion was correct, or that a Tomaco component wasn't duplicated (principle 16). Country-logic isolation (principle 12's second half) and the human-review pause itself (principle 9) have no code-level check at all. `homero-reviewer` is the safety net for the judgment calls no gate can make — whether what was found and reused is actually correct, not just present.
 
 ## Figma and visual fidelity
 

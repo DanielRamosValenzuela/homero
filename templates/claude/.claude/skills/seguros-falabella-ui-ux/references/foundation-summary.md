@@ -48,6 +48,10 @@ The Figma notes reference WCAG and W3C accessibility guidance. Preserve contrast
 
 The Figma file divides typography into page titles, section headings, paragraph text, labels, and input values.
 
+### Font family
+
+Confirmed in production Falabella Seguros code: **Maven Pro**, loaded via `next/font/local` in a Next.js project. If the repo already loads a font this way, reuse it — do not introduce a second font-loading mechanism (e.g. a `<link>` to Google Fonts) alongside an existing `next/font` setup.
+
 ### Titles and headings
 
 - Titles are intended for page-level titles similar to `h1` and `h2`.

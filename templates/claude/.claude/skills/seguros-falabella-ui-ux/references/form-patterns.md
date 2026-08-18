@@ -140,6 +140,18 @@ UX rule:
 - On mobile, condense it and protect the primary task from being buried under recap detail.
 - Fixed action bars should stay stable and predictable across steps.
 
+## Validation copy conventions
+
+Real, in-production Falabella Seguros error copy (confirmed across two products) follows a consistent register — short, direct, "Debes..."-pattern for required/format errors:
+
+- "Debes ingresar un/una `<campo>` válido/a" (RUT, correo, teléfono, fecha)
+- "Este campo es requerido"
+- "RUT inválido"
+- "Debes aceptar los términos y condiciones"
+- Field-specific format hints when a regex constrains the value (e.g. a phone field: "El número debe comenzar con 9 seguido de 8 dígitos")
+
+Treat these as a reference for *style*, not a substitute for the real copy: always source the exact error copy for a given field from Figma (an error/invalid-state variant, per this file's parent skill) or the human first. Use this register only to sanity-check found copy, or as a starting point when Figma genuinely has no error copy and the human confirms generic copy is acceptable for that field.
+
 ## Form decision checklist
 
 Before finalizing a form or checkout proposal, confirm:

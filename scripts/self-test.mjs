@@ -57,6 +57,23 @@ function runExpectFailure(args, { cliPath = activeCliPath } = {}) {
   }
 }
 
+// Same contract as `runExpectFailure`, but returns the combined stdout+stderr instead of
+// discarding it — for asserting a specific fail() message actually fired, not just that the
+// process exited non-zero (several distinct fail() branches share the same exit code).
+function runExpectFailureCaptureOutput(args, { cliPath = activeCliPath } = {}) {
+  const result = spawnSync(process.execPath, [cliPath, ...args], {
+    cwd: repoRoot,
+    encoding: "utf8"
+  });
+
+  if (result.status === 0) {
+    console.error(`Expected command to fail: homero ${args.join(" ")}`);
+    process.exit(1);
+  }
+
+  return `${result.stdout}\n${result.stderr}`;
+}
+
 function runGit(args) {
   const result = spawnSync("git", args, {
     cwd: targetRoot,
@@ -91,6 +108,7 @@ function fillRequiredPlanSections(specDir) {
 
   const fills = {
     "## Technical summary": "\n\nSelf-test placeholder technical summary.\n",
+    "## Repo patterns to reuse": "\n\n- No existing shared widget or page chrome covers this need; confirmed by grepping paths.widgetsRoot and sibling app/*/page.tsx files.\n",
     "## Tomaco components and tokens": "\n\n- Card (props: title, footer) using --spacing-16 padding.\n",
     "## Pixel-perfect styling": "\n\n- Desktop: 24px padding via .p24; mobile: 16px padding via .p16.\n",
     "## Files to create or modify": "\n\n- src/ui/cl/SelfTestFeature/index.tsx\n",
@@ -112,6 +130,44 @@ function fillRequiredPlanSections(specDir) {
   }
 
   fs.writeFileSync(planPath, plan, "utf8");
+}
+
+// Inverse of a single fillRequiredPlanSections() fill: puts one section in an already-filled
+// plan.md back to the shipped template's exact placeholder body, to test that section's gate
+// in isolation without disturbing the others. Returns the section's filled body so the caller
+// can restore it afterward.
+function revertPlanSectionToPlaceholder(workspaceRoot, specDir, heading) {
+  const templatePlan = fs.readFileSync(path.join(workspaceRoot, "specs", "_template", "plan.md"), "utf8").replace(/\r\n/g, "\n");
+  const templateHeadingIndex = templatePlan.indexOf(`## ${heading}\n`);
+  if (templateHeadingIndex === -1) {
+    console.error(`Expected specs/_template/plan.md to contain heading: ${heading}`);
+    process.exit(1);
+  }
+  const templateBodyStart = templateHeadingIndex + `## ${heading}\n`.length;
+  const templateNextHeadingIndex = templatePlan.indexOf("\n## ", templateBodyStart);
+  const placeholderBody = templatePlan.slice(templateBodyStart, templateNextHeadingIndex === -1 ? templatePlan.length : templateNextHeadingIndex);
+
+  const planPath = path.join(specDir, "plan.md");
+  const plan = fs.readFileSync(planPath, "utf8").replace(/\r\n/g, "\n");
+  const headingIndex = plan.indexOf(`## ${heading}\n`);
+  const bodyStart = headingIndex + `## ${heading}\n`.length;
+  const nextHeadingIndex = plan.indexOf("\n## ", bodyStart);
+  const bodyEnd = nextHeadingIndex === -1 ? plan.length : nextHeadingIndex;
+  const filledBody = plan.slice(bodyStart, bodyEnd);
+
+  fs.writeFileSync(planPath, `${plan.slice(0, bodyStart)}${placeholderBody}${plan.slice(bodyEnd)}`, "utf8");
+  return filledBody;
+}
+
+function restorePlanSection(specDir, heading, filledBody) {
+  const planPath = path.join(specDir, "plan.md");
+  const plan = fs.readFileSync(planPath, "utf8").replace(/\r\n/g, "\n");
+  const headingIndex = plan.indexOf(`## ${heading}\n`);
+  const bodyStart = headingIndex + `## ${heading}\n`.length;
+  const nextHeadingIndex = plan.indexOf("\n## ", bodyStart);
+  const bodyEnd = nextHeadingIndex === -1 ? plan.length : nextHeadingIndex;
+
+  fs.writeFileSync(planPath, `${plan.slice(0, bodyStart)}${filledBody}${plan.slice(bodyEnd)}`, "utf8");
 }
 
 // --- Version invariant ---
@@ -386,6 +442,15 @@ runExpectFailure(["feature", "check", "--target", targetRoot, "--id", "FEAT-001"
 
 fillRequiredPlanSections(featureSpecDir);
 
+// --- Regression test: "Repo patterns to reuse" left as the template placeholder must fail
+// `feature check` on its own, isolated from every other section — this is the gate behind
+// principle 15/19's reuse-search requirement (was previously ungated: nothing checked this
+// section at all, so a plan could duplicate a widget or page chrome and pass regardless).
+const repoPatternsFilledBody = revertPlanSectionToPlaceholder(targetRoot, featureSpecDir, "Repo patterns to reuse");
+runExpectFailure(["feature", "check", "--target", targetRoot, "--id", "FEAT-001"]);
+restorePlanSection(featureSpecDir, "Repo patterns to reuse", repoPatternsFilledBody);
+run(["feature", "check", "--target", targetRoot, "--id", "FEAT-001"]);
+
 // --- Regression test: `feature check` must NOT require Playwright evidence — that's
 // verify's job, after implementation exists. Requiring it here was a circular dependency
 // (feature check gates the start of implementation, but evidence can only be captured by
@@ -399,6 +464,22 @@ runExpectFailure(["verify", "--target", targetRoot, "--id", "FEAT-001"]);
 fs.writeFileSync(playwrightEvidencePath, `${JSON.stringify(evidenceBeforeCapture, null, 2)}\n`, "utf8");
 
 run(["feature", "check", "--target", targetRoot, "--id", "FEAT-001"]);
+
+// --- Regression test: a Figma URL with no node-id must fail `feature check`, not just a
+// missing url/version — this suite's own fixtures always included node-id=1-2, so the gap
+// (the field was written to feature.json but never actually validated) went unnoticed.
+const featureWithNoFigmaNode = JSON.parse(fs.readFileSync(featurePath, "utf8"));
+featureWithNoFigmaNode.design.figma.url = "https://www.figma.com/design/example/quote";
+featureWithNoFigmaNode.design.figma.nodeId = null;
+fs.writeFileSync(featurePath, `${JSON.stringify(featureWithNoFigmaNode, null, 2)}\n`, "utf8");
+const nodeIdOutput = runExpectFailureCaptureOutput(["feature", "check", "--target", targetRoot, "--id", "FEAT-001"]);
+if (!nodeIdOutput.includes("node-id")) {
+  console.error(`Expected a node-id-specific failure for a Figma URL missing node-id, got:\n${nodeIdOutput}`);
+  process.exit(1);
+}
+fs.writeFileSync(featurePath, `${JSON.stringify(feature, null, 2)}\n`, "utf8");
+run(["feature", "check", "--target", targetRoot, "--id", "FEAT-001"]);
+
 run(["verify", "--target", targetRoot, "--id", "FEAT-001"]);
 
 const receiptsDir = path.join(featureDir, "receipts");
@@ -1239,6 +1320,115 @@ if (npmConfig.packageManager !== "npm" || npmConfig.commands.lint !== "npm run l
 const npmPlaywrightOutput = runCaptureOutput(["setup", "playwright", "--target", npmRoot, "--dry-run"], { cliPath: npmCliPath });
 if (!npmPlaywrightOutput.includes("npm install") || !npmPlaywrightOutput.includes("npx playwright") || npmPlaywrightOutput.includes("pnpm")) {
   console.error(`Expected \`setup playwright\` on an npm-configured repo to print npm/npx commands with no pnpm fallback, got:\n${npmPlaywrightOutput}`);
+  process.exit(1);
+}
+
+// --- Audit-identified gaps: previously-untested fail() branches ---
+// A full-project audit found these guards exist and are load-bearing, but nothing in this
+// suite ever exercised them, so a regression to any of them would have gone unnoticed until a
+// real user hit it. Each assertion below both closes the gap and pins the exact message.
+
+let gapOutput = runExpectFailureCaptureOutput(["bogus-command"], { cliPath: sourceCliPath });
+if (!gapOutput.includes("Unknown command")) {
+  console.error(`Expected "Unknown command" for a bogus top-level command, got:\n${gapOutput}`);
+  process.exit(1);
+}
+
+gapOutput = runExpectFailureCaptureOutput(["feature", "bogus"], { cliPath: sourceCliPath });
+if (!gapOutput.includes("Unknown feature command")) {
+  console.error(`Expected "Unknown feature command" for \`homero feature bogus\`, got:\n${gapOutput}`);
+  process.exit(1);
+}
+
+gapOutput = runExpectFailureCaptureOutput(["task", "bogus"], { cliPath: sourceCliPath });
+if (!gapOutput.includes("Unknown task command")) {
+  console.error(`Expected "Unknown task command" for \`homero task bogus\`, got:\n${gapOutput}`);
+  process.exit(1);
+}
+
+gapOutput = runExpectFailureCaptureOutput(["setup", "bogus"], { cliPath: sourceCliPath });
+if (!gapOutput.includes("Unknown setup command")) {
+  console.error(`Expected "Unknown setup command" for \`homero setup bogus\`, got:\n${gapOutput}`);
+  process.exit(1);
+}
+
+gapOutput = runExpectFailureCaptureOutput(["generate", "bogus"], { cliPath: sourceCliPath });
+if (!gapOutput.includes("Unknown generator")) {
+  console.error(`Expected "Unknown generator" for \`homero generate bogus\`, got:\n${gapOutput}`);
+  process.exit(1);
+}
+
+// validateClient's invalid --client rejection.
+gapOutput = runExpectFailureCaptureOutput(["validate", "--target", targetRoot, "--client", "bogus"], { cliPath: sourceCliPath });
+if (!gapOutput.includes("Invalid client")) {
+  console.error(`Expected "Invalid client" for --client bogus, got:\n${gapOutput}`);
+  process.exit(1);
+}
+
+// A fresh, isolated fixture for the remaining gaps below.
+const gapsRoot = fs.mkdtempSync(path.join(os.tmpdir(), "homero-self-test-gaps-"));
+
+// ensureCleanGitRepo's "not a git repository" branch: feature create in a Homero-initialized
+// but non-git directory.
+run(["init", "--target", gapsRoot, "--client", "claude", "--project-name", "homero-self-test-gaps"], { cliPath: sourceCliPath });
+const gapsFeatureArgs = [
+  "feature", "create",
+  "--target", gapsRoot,
+  "--id", "FEAT-GAP",
+  "--name", "Gap check",
+  "--figma", "https://www.figma.com/design/example/gap?node-id=1-2",
+  "--figma-version", "approved-v1",
+  "--contract-mode", "contract-draft",
+  "--contract-source", "docs/contracts/gap.openapi.yaml",
+  "--countries", "cl"
+];
+gapOutput = runExpectFailureCaptureOutput(gapsFeatureArgs, { cliPath: sourceCliPath });
+if (!gapOutput.includes("requires a Git repository")) {
+  console.error(`Expected "requires a Git repository" for feature create outside a git repo, got:\n${gapOutput}`);
+  process.exit(1);
+}
+
+// ensureCleanGitRepo's dirty-working-tree branch, exercised through both of its callers
+// (feature create and upgrade use different reason strings for the same underlying check).
+spawnSync("git", ["init", "--initial-branch=main"], { cwd: gapsRoot, stdio: "inherit" });
+spawnSync("git", ["add", "."], { cwd: gapsRoot, stdio: "inherit" });
+spawnSync("git", ["-c", "user.name=Homero Test", "-c", "user.email=homero@example.test", "commit", "-m", "chore: install homero"], { cwd: gapsRoot, stdio: "inherit" });
+spawnSync("git", ["checkout", "-b", "feature/FEAT-GAP-gap-check"], { cwd: gapsRoot, stdio: "inherit" });
+fs.writeFileSync(path.join(gapsRoot, "uncommitted.txt"), "dirty\n", "utf8");
+
+gapOutput = runExpectFailureCaptureOutput(gapsFeatureArgs, { cliPath: sourceCliPath });
+if (!gapOutput.includes("requires a clean working tree")) {
+  console.error(`Expected "requires a clean working tree" for feature create with uncommitted changes, got:\n${gapOutput}`);
+  process.exit(1);
+}
+
+gapOutput = runExpectFailureCaptureOutput(["upgrade", "--target", gapsRoot], { cliPath: sourceCliPath });
+if (!gapOutput.includes("needs a clean working tree")) {
+  console.error(`Expected "needs a clean working tree" for upgrade with uncommitted changes, got:\n${gapOutput}`);
+  process.exit(1);
+}
+
+fs.rmSync(path.join(gapsRoot, "uncommitted.txt"));
+spawnSync("git", ["checkout", "main"], { cwd: gapsRoot, stdio: "inherit" });
+spawnSync("git", ["branch", "-D", "feature/FEAT-GAP-gap-check"], { cwd: gapsRoot, stdio: "inherit" });
+
+// readJsonFile's malformed-JSON branch: any command that reads homero.config.json.
+const gapsConfigPath = path.join(gapsRoot, "homero.config.json");
+const gapsConfigBackup = fs.readFileSync(gapsConfigPath, "utf8");
+fs.writeFileSync(gapsConfigPath, "{ this is not valid JSON", "utf8");
+gapOutput = runExpectFailureCaptureOutput(["validate", "--target", gapsRoot, "--client", "claude"], { cliPath: sourceCliPath });
+if (!gapOutput.includes("is not valid JSON")) {
+  console.error(`Expected "is not valid JSON" for a corrupted homero.config.json, got:\n${gapOutput}`);
+  process.exit(1);
+}
+fs.writeFileSync(gapsConfigPath, gapsConfigBackup, "utf8");
+
+// discover's non-interactive-without---defaults branch: self-test drives the CLI via
+// spawnSync, so stdin is never a TTY — omitting --defaults must fail fast, not hang forever
+// on prompt.question().
+gapOutput = runExpectFailureCaptureOutput(["discover", "--target", gapsRoot], { cliPath: sourceCliPath });
+if (!gapOutput.includes("needs an interactive terminal")) {
+  console.error(`Expected "needs an interactive terminal" for discover without --defaults in a non-TTY context, got:\n${gapOutput}`);
   process.exit(1);
 }
 

@@ -106,7 +106,7 @@ homero setup playwright|graphify --target <repo> [--dry-run]
 Run `homero <command> --help` (or see `packages/cli/bin/homero.mjs`'s
 `usage()`) for the authoritative flag list — the block above is a summary, not
 the source of truth. `usage()` names every command's flags directly except
-`discover`'s ~32 per-field questions, which it points at
+`discover`'s ~35 per-field questions, which it points at
 `docs/homero/ai-workflow.md` for rather than enumerating inline.
 
 `homero discover` is the first step toward the full harness lifecycle. It asks

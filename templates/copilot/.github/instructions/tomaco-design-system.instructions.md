@@ -213,6 +213,14 @@ When in doubt, read the built CSS or use the CSS custom properties — every Sas
 variable is emitted on `:root`, so `var(--neutral5)` is durable where a utility
 class name is not.
 
+## React Hook Form integration
+
+Tomaco components are not natively RHF-controlled — they take `value`/`onChange` (or a component-specific controlled-prop pair — see `tomaco-component-gotchas.md`'s "totally controlled, no fallback" traps), not a `register()`-compatible ref. The confirmed, real pattern across production Falabella Seguros forms: a thin per-input-type wrapper (e.g. `InputController`, `InputDateController`, `CheckBoxController`, `SelectController`, `SelectSearchController`) that wraps React Hook Form's own `Controller`, taking `name`/`control` plus the Tomaco component's normal props, and wires `field.value`/`field.onChange` and `fieldState.error` into the underlying Tomaco atom. Check whether the repo already has one for the input type you need before writing a new one — this is genuinely repeated, load-bearing code across a form-heavy screen, not a one-off.
+
+## Anti-pattern: trivial wrapper components
+
+Do not create a wrapper component around a Tomaco atom that adds no real logic (no validation, no composition, no business rule) — just re-exporting the atom with a `displayName` and no actual behavior. Import directly from `tomaco-components` at the call site instead; this is confirmed as a real anti-pattern flagged by more than one production Falabella Seguros codebase's own internal conventions doc. The `Controller` wrappers above are a legitimate exception — they add real logic (RHF wiring), not just indirection.
+
 ## Handoff
 
 - Layout, spacing, hierarchy, responsive structure, pattern reuse →

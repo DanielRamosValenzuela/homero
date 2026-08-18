@@ -27,6 +27,22 @@
 - A step owns orchestration, not all field logic
 - Form logic should stay close to the form itself
 
+### App shell
+
+- Page chrome (header, logo bar, top navigation, footer) does not always
+  live in the framework's root layout file. In real Falabella Seguros
+  repos it commonly lives in a shared molecule/component (e.g. `Header`,
+  `Layout`) that every screen or step explicitly imports and composes —
+  the root layout (`src/app/layout.tsx`, or equivalent) may render only
+  providers (query client, feature flags, analytics) and nothing visual
+  at all
+- Before planning or implementing a screen with header-like content, check
+  how other existing screens/steps in this repo actually compose their own
+  chrome — grep sibling route/page files for what they import — rather than
+  assuming the root layout is the only place to check. A screen
+  re-declaring chrome that already exists elsewhere is a visible duplicate
+  (two logos, two headers), not a stylistic choice
+
 ### Shared step widgets
 
 - Before adding a new shared widget, search `paths.widgetsRoot` (and prior

@@ -97,6 +97,7 @@ shade). Preserve WCAG contrast — don't trade readability for brand saturation.
 
 ### Typography
 
+- Font family: confirmed in production Falabella Seguros code as **Maven Pro**, loaded via `next/font/local` in a Next.js project. If the repo already loads a font this way, reuse it — do not introduce a second font-loading mechanism alongside an existing `next/font` setup.
 - Titles (`h1`/`h2`-equivalent): `title.md` 32/28.
 - Section headings: `heading.lg` 22, `heading.md` 18, `heading.section` 12.
 - Paragraphs: `paragraph.lg` 20, `paragraph.md` 18, `paragraph.sm` 16.
@@ -118,14 +119,24 @@ decoration.
 - Don't stack multiple heavy shadows in one viewport; a summary panel, a
   card, and a modal should not all compete at the same shadow intensity.
 
+## Known cross-product patterns
+
+Patterns confirmed against real, UI/UX-approved Falabella Seguros products (Salud, Vida) — check here before treating something as a fresh unknown that needs a from-scratch question to the human.
+
+- **Page composition** (general — applies to any screen with page chrome): real Falabella Seguros screens compose in this layer order: a shared chrome molecule (`Header`/`Layout`, imported explicitly per screen — see `docs/homero/architecture.md`'s "App shell" section) wraps a content container, which splits into a primary content column (form) and an optional secondary support column (summary) on desktop, stacking on mobile. Name this composition explicitly instead of describing it generically — it confirms both which files already provide chrome and which split ratio applies (`757/363` standard, `736/352` OMNI variant).
+- **"¿Estoy recibiendo ayuda de un asesor?" switch** (scoped — sales/quote flow only, do not assume it appears on servicing/post-sale screens): a recurring interaction, confirmed identical in two independent products (Vida, Salud): a switch that, when turned on, reveals a required "Código del asesor" text input (max 8 characters) with a tooltip explaining who provides the code, validated like any other required field, and cleared when the switch is turned back off. When this exact switch appears in a quote/onboarding flow, treat this as the confirmed default behavior and present it to the human as "detected known pattern: X — confirm, or tell me if this instance differs" instead of asking what it does from zero. Still confirm — Figma may have intentionally deviated — the question is now a confirmation, not a blank one. This is specific to the sales/quoting phase; do not assume an "advisor" switch on a different kind of screen means the same thing without checking.
+
 ## Component catalog (Figma "❖ Components")
 
 Map the task to the closest existing page before creating anything custom;
 compose existing building blocks before proposing a new artifact. Families in
 the library: Accordion, Alerts, Buttons (+ Link variants), Badges,
-Breadcrumbs, Banners/campañas, Cards (simple + comparación), Checkout, Modals,
-Feedback, Form, Filter, Footer, Header, List, Item, Loader, Summary, Switch,
-Tooltips, Table, Tabs, plus Logos and Icons/Illustrations asset families.
+Breadcrumbs, Banners/campañas, Cards (simple + comparación), Checkout, Capcha,
+Modals, Feedback, Form, Filter, Footer, Header, List, Item, Loader, Summary,
+Switch, Tooltips, Table, Tabs, Templates pages, Template PDF, Templates
+Emails, plus Logos and Icons/Illustrations asset families. If a task falls
+into email/PDF templates specifically, treat it as a different medium — don't
+copy web interaction patterns blindly (see "Routing by task shape" below).
 
 Concrete patterns worth knowing before you guess dimensions:
 
@@ -207,6 +218,18 @@ Structural/behavioral only — for exact component names (`Input`, `TextArea`,
   Persistent on desktop when it aids decision confidence; condensed on
   mobile, protected from burying the primary task. Fixed action bars stay
   stable and predictable across steps.
+
+## Validation copy conventions
+
+Real, in-production Falabella Seguros error copy (confirmed across two products) follows a consistent register — short, direct, "Debes..."-pattern for required/format errors:
+
+- "Debes ingresar un/una `<campo>` válido/a" (RUT, correo, teléfono, fecha)
+- "Este campo es requerido"
+- "RUT inválido"
+- "Debes aceptar los términos y condiciones"
+- Field-specific format hints when a regex constrains the value (e.g. a phone field: "El número debe comenzar con 9 seguido de 8 dígitos")
+
+Treat these as a reference for *style*, not a substitute for the real copy: always source the exact error copy for a given field from Figma (an error/invalid-state variant) or the human first. Use this register only to sanity-check found copy, or as a starting point when Figma genuinely has no error copy and the human confirms generic copy is acceptable for that field.
 
 ## Review/proposal checklist
 

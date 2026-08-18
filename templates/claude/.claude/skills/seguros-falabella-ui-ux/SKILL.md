@@ -107,6 +107,18 @@ Use these defaults unless the task clearly requires a documented variant.
 - Product colors are for accents, identifiers, emphasis states, and supportive illustration, not for long text passages.
 - Borders and separators should remain light and quiet.
 
+## Known Cross-Product Patterns
+
+Patterns confirmed against real, UI/UX-approved Falabella Seguros products (Salud, Vida) — check here before treating something as a fresh unknown that needs a from-scratch question to the human.
+
+### Page composition (general — applies to any screen with page chrome)
+
+Real Falabella Seguros screens compose in this layer order: a shared chrome molecule (`Header`/`Layout`, imported explicitly per screen — see `docs/homero/architecture.md`'s "App shell" section) wraps a content container, which splits into a primary content column (form) and an optional secondary support column (summary) on desktop, stacking on mobile. Name this composition explicitly in a plan instead of describing it generically — it confirms both which files already provide chrome and which split ratio applies (`757/363` standard, `736/352` OMNI variant, both documented above).
+
+### "¿Estoy recibiendo ayuda de un asesor?" switch (scoped — sales/quote flow only, do not assume it appears on servicing/post-sale screens)
+
+A recurring Falabella Seguros interaction, confirmed identical in two independent products (Vida, Salud): a switch labeled "¿Estoy recibiendo ayuda de un asesor?" that, when turned on, reveals a required "Código del asesor" text input (max 8 characters) with a tooltip explaining who provides the code, validated the same as any other required field, and cleared when the switch is turned back off. When this exact switch appears in a quote/onboarding flow, treat this as the confirmed default behavior and present it to the human as "detected known pattern: X — confirm, or tell me if this instance differs" instead of asking what it does from zero. Still confirm — Figma may have intentionally deviated for a specific feature — the question is now a confirmation, not a blank one. This pattern is specific to the sales/quoting phase; do not assume an "advisor" switch on a different kind of screen (e.g. account servicing, claims) means the same thing without checking.
+
 ## Workflow
 
 ### Step 1: Classify the Task

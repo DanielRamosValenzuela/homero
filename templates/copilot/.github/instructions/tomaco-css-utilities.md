@@ -206,6 +206,10 @@ wider desktop viewport gets a wider container past 1152px without checking the
 Figma source for that specific screen (some flows use a separate `OMNI`
 container, see that note).
 
+### When Tomaco doesn't cover an arbitrary content width
+
+Tomaco's own container classes only give you the fixed breakpoint widths above (`576`–`1152px`) — a card, form column, or content block that needs a specific narrower width (e.g. `288px`, `384px`, `544px`) has no equivalent Tomaco utility class. Confirmed real pattern: define a small number of project-level custom classes for exactly this (e.g. `max-width-288`, `max-width-384`, `max-width-544`, with responsive variants like `lg-max-width-452` when the value itself needs to change per breakpoint) in the project's own global stylesheet, not inline styles or ad hoc values scattered per component. Keep the set small and named after the actual pixel value, not a semantic guess — this is a real gap in Tomaco's own utility coverage, not something to work around by inventing inline styles per usage site.
+
 ### Row
 
 `row`, `row-cols-{1-6}`, `row-cols-auto`, `row-cols-{bp}-{1-6}`.

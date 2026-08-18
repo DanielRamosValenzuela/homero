@@ -26,6 +26,14 @@ Apply whenever editing a form or creating a new form under `paths.uiRoot`
 - If the form does not vary in structure between countries (only in data),
   keep a single implementation under a `global` path instead of forking it
   per country.
+- Initialize `useForm` with `mode: 'onTouched'` (validate on blur, not on
+  every keystroke or only on submit) unless the repo's existing forms
+  already use a different mode consistently — confirmed as the real,
+  repeated convention across production Falabella Seguros forms.
+- When a form needs to persist/restore values across steps or a page
+  refresh, source `defaultValues` from the step's state store (e.g.
+  Zustand) instead of re-deriving them ad hoc — also a confirmed real
+  pattern, not a hypothetical one.
 
 ## Fast path
 

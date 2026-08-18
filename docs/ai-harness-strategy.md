@@ -159,7 +159,7 @@ What's still genuinely rough:
   conventions before asking — a brownfield install gets the same generic
   questions as a greenfield one.
 - **Verification gates are still mostly existence/boolean checks**, not deep
-  content checks, though three of the weakest spots got real fixes:
+  content checks, though several of the weakest spots got real fixes:
   `contracts.mocks.registered` used to only need to be `true`, with no check
   that `mocks.source` pointed at a real file — `feature check` now fails if it
   doesn't. `requirements.uiStates` used to only need to be non-empty, which the
@@ -169,14 +169,21 @@ What's still genuinely rough:
   written down. `plan.md` used to have no gate at all — any of its sections
   could stay the shipped template's placeholder forever and nothing noticed;
   `feature check`/`run`/`verify` now reject a plan whose required sections
-  (Tomaco components/tokens, pixel-perfect styling, files to change, form/
-  validation, Figma adaptation) still match the unedited template, per
-  principle 18. What's still unchecked in all three cases: whether the
-  content is actually *correct* — a plausible-sounding fabricated Tomaco
-  component name or a made-up padding value passes exactly as well as a real
-  one, and whether the mock's actual *shape* matches the recorded contract.
-  `homero verify` running your real lint/typecheck/test/e2e commands remains
-  the genuinely executable part.
+  (repo patterns to reuse, Tomaco components/tokens, pixel-perfect styling,
+  files to change, form/validation, Figma adaptation) still match the
+  unedited template, per principles 15 and 18. A Figma URL with no node-id
+  (url and version present, but pointing at the whole file, not an approved
+  screen) also now fails principle 2's check — previously the field was
+  written to `feature.json` but never read back anywhere. What's still
+  unchecked: whether the content is actually *correct* — a plausible-sounding
+  fabricated Tomaco component name or a made-up padding value passes exactly
+  as well as a real one, whether the mock's actual *shape* matches the
+  recorded contract, and whether a recorded "reuse search" actually found the
+  right thing rather than just recording *something*. Country-logic isolation
+  (principle 12's second half) and the human-review pause (principle 9) have
+  no code-level check at all — see `docs/homero/verification.md`'s own
+  breakdown of what is and isn't gated. `homero verify` running your real
+  lint/typecheck/test/e2e commands remains the genuinely executable part.
 - **No worked example ships with the repo.** There's no sample
   `specs/<id>-<slug>/` or `features/<id>/` with realistic content — a
   first-time reader has to infer the expected level of detail from

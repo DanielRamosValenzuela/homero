@@ -37,7 +37,7 @@ are Copilot's equivalent of the `seguros-falabella-ui-ux` and
 
 Use Homero as the harness contract:
 
-- Start every non-trivial feature with `homero feature create`; it creates the required local feature branch and contract. Do not create commits.
+- Start every non-trivial feature with `homero feature create`, run on a non-main branch already checked out (it refuses to run on main and does not create a branch itself); it produces the required contract. Do not create commits.
 - Use Tomaco and existing project conventions over generated CSS or Tailwind-style output. Tomaco is mandatory.
 - Require and record the approved Figma URL, node, and version before implementing visible UI.
 - For backend-dependent features, request a contract source, draft contract, or explicit no-backend exception before inventing payloads.

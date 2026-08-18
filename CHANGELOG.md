@@ -5,6 +5,184 @@ explaining version boundaries that change `homero upgrade`'s behavior, not a
 full history of every change. Run `homero version --target .` to see what
 your install is actually on.
 
+## 0.15.0
+
+A full-project audit (6 parallel finders, every finding independently
+re-verified) surfaced 26 real issues across the CLI, the test suite, the
+docs, and both template adapters. All were fixed.
+
+**Doc drift (both were flatly wrong about current behavior):**
+- `constitution.md` principle 7 and `copilot-instructions.md` still said
+  `feature create` "creates a local branch" — the exact opposite of the
+  0.12.0 change (it refuses to run on main and requires one to already
+  exist). Both missed that pass.
+- `docs/architecture.md` and the CLI's own `--help` text said discover has
+  "~32" questions; the real count is 35.
+- `verification.md` implied the Figma/Tomaco portion of `feature check` was
+  stronger than it actually is — rewritten to say plainly what is and isn't
+  gated (see the new enforcement section below).
+
+**New mechanical gates:**
+- **Figma node-id, principle 2**: `feature.json` stored `design.figma.nodeId`
+  but `featureErrors()` never read it back — a Figma URL missing `node-id`
+  (points at the whole file, not an approved screen) passed `feature check`
+  regardless. Now checked, with a dedicated regression test.
+- **"Repo patterns to reuse," principles 15/19**: this `plan.md` section
+  existed but had no gate at all — it could stay the unedited template
+  placeholder forever. It's now one of `requiredPlanSections`, giving real
+  teeth to "record what you found before creating a new widget or rebuilding
+  page chrome a sibling screen already provides." Proves the search was
+  recorded, not that its conclusion was correct — that's still
+  `homero-reviewer`'s job, documented explicitly now in `verification.md`.
+- `docs/homero/verification.md` gained an honest breakdown of what's
+  mechanically gated vs. agent-instruction-only (country-logic isolation and
+  the human-review pause have no code-level check at all, and that's stated
+  plainly instead of implied otherwise).
+
+**CLI cleanup (packages/cli/bin/homero.mjs), all behavior-preserving:**
+- Removed `writeTextFile()` (dead — every real doc write goes through the
+  sibling `writeDiscoveredDoc()`).
+- Simplified `hasFlag()` — its `commandArgs.includes(name) ||` clause could
+  never independently change the result (`commandArgs` is a subset of `args`
+  by construction).
+- `featureCheck()`'s trailing if/else always returned the same shape;
+  collapsed to one return.
+- New shared helpers removing four separate copies of one guard:
+  `requireTargetAndId()` (the identical `--target`/`--id`/`--help` check in
+  `featureCheckCommand`/`verifyFeature`/`runLoop`/`taskStatus`),
+  `verifyLimitFor()` (the identical `maxVerifyAttempts` fallback chain in
+  three functions), `findTaskOrFail()` (the identical task-lookup-or-fail
+  pair in `taskVerify`/`taskBlock`).
+
+**Self-test coverage for fail() branches that had zero regression coverage**
+(self-test.mjs is the project's only test suite — an untested branch is a
+real gap, not a nitpick): the 5 "unknown command" typo-safety-net branches
+(main dispatcher plus feature/task/setup/generate subcommands), the invalid
+`--client` rejection, `ensureCleanGitRepo`'s dirty-tree rejection (through
+both `feature create` and `upgrade`) and its "not a git repository" branch,
+`readJsonFile`'s malformed-JSON message, and `discover`'s non-interactive-
+without-`--defaults` guard (the only thing stopping it from hanging forever
+in a CI/non-TTY context).
+
+**Template symmetry (Claude ↔ Copilot):**
+- Copilot's `frontend.instructions.md` collapsed Claude's `rules/tomaco.md`
+  rich `'use client'` rationale (the packaging explanation, the "don't
+  verify by grepping for createContext" warning, the presentational-
+  component exception list) into one sentence. Ported the full version over.
+- Claude's `component-catalog.md` listed `Capcha`/`Templates pages`/
+  `Template PDF`/`Templates Emails` as detected Figma areas; Copilot's
+  inlined catalog never mentioned them. Added.
+- `rules/frontend.md`, `step-widgets.md`, `server-actions.md`, and
+  `transport-patterns.md` were never referenced by path from anything an
+  agent would actually open on the Claude side (Copilot's equivalents
+  auto-apply via a real `applyTo` glob; Claude's relied on a vague "client-
+  specific rules" mention in `CLAUDE.md` with no filenames). `CLAUDE.md` now
+  names all four explicitly, with a one-line trigger condition for each.
+- Fixed a wording slip introduced in 0.14.0: several agent instructions
+  told the planner to record reuse findings under "Reused repo patterns" —
+  the real `plan.md` heading is "Repo patterns to reuse." Fixed everywhere.
+
+Also reviewed and confirmed fine, no change needed: `scripts/bootstrap-
+harness.mjs`/`validate-harness.mjs` looked like legacy-script candidates but
+are actively referenced by CI and docs as intentional thin wrappers; a
+broader sweep of repo root/`scripts/`/`packages/` found no orphaned files;
+`--help` is exercised in CI (via those same wrappers) even though
+self-test.mjs itself never passes it.
+
+## 0.14.0
+
+Design-system skill content enriched from three real, UI/UX-approved
+Falabella Seguros products — two frontends on Tomaco (Salud) and Tailwind
+(Vida, for UX-level patterns only, never CSS), plus a scoping pass over two
+backends. Also **corrects a mistake shipped in 0.13.0**: the "check the app's
+root layout" instruction (constitution.md principle 19, `architecture.md`'s
+App shell section, `homero-planner`/`homero-implementer`/`homero-reviewer`)
+would not actually have caught the real duplicate-header bug it was written
+for — in a real repo, chrome lives in a shared `Header`/`Layout` molecule
+every screen imports explicitly, and the root layout itself renders only
+providers. All five now say to check how sibling screens/pages actually
+compose their chrome, not just the framework's root layout file.
+
+New content, `seguros-falabella-ui-ux` (both clients):
+
+- "Known Cross-Product Patterns": a named page-composition pattern (chrome
+  molecule → content → form/summary split), and the "¿Estoy recibiendo ayuda
+  de un asesor?" switch — confirmed identical in two independent products
+  (reveals a required, validated "Código del asesor" field) — explicitly
+  scoped to the sales/quote flow, not assumed to apply to servicing/post-sale
+  screens. `homero-figma`/constitution.md principle 14 now say to check this
+  list before treating a recognized element as a blank unknown, and present
+  a match as "detected known pattern — confirm" instead of asking from zero.
+- Real validation-copy register ("Debes ingresar un/una `<campo>` válido/a",
+  etc.) as a style reference, not a substitute for Figma-sourced copy.
+- Confirmed font family (Maven Pro, `next/font/local`) — previously
+  undocumented.
+
+New content, `tomaco-design-system` (both clients):
+
+- "React Hook Form integration": the real, load-bearing `Controller`-wrapper
+  pattern (`InputController`, `InputDateController`, etc.) for wiring Tomaco
+  atoms — which aren't natively RHF-controlled — into forms. Previously
+  undocumented; `homero-implementer` had no guidance here at all.
+- Anti-pattern note: no trivial wrapper components around a Tomaco atom with
+  no real logic (the `Controller` wrappers above are the legitimate
+  exception).
+- CSS gap: when Tomaco's fixed container widths don't cover an arbitrary
+  content width, define a small set of project-level custom classes named
+  after the real pixel value, confirmed as the real pattern (not inline
+  styles).
+
+`rules/forms.md`/`forms.instructions.md`: `mode: 'onTouched'` and restoring
+`defaultValues` from a step's state store, both confirmed real conventions.
+`rules/tomaco.md`/`frontend.instructions.md`: sharpened the styling-layer
+order (Bootstrap for layout, Tomaco for tokens, minimal custom CSS only for
+real gaps) to match the real, more precise articulation found in a
+production repo's own team conventions doc.
+
+`homero-contracts` (both clients): real backends don't share one error
+envelope — two confirmed, incompatible conventions exist — so don't assume
+a universal "Falabella error shape"; do preserve real header conventions
+(`x-country`, `x-channel`, `x-trace-id`) found in a cURL-format contract
+source.
+
+Explicitly **not** changed: `css-utilities.md`/`foundation-summary.md`'s
+existing spacing/breakpoint/token numbers — independently confirmed exact
+against the real Tomaco-based product, zero corrections needed. Tailwind
+-specific values from the Vida research (different spacing, arbitrary
+bracket values) were deliberately not incorporated — they belong to a
+different styling technology, not a Tomaco correction.
+
+## 0.13.0
+
+Real-world feedback from a first implemented feature: `homero-implementer`
+duplicated the app's existing header/logo inside the screen instead of
+reusing the root layout, and error-message copy didn't match Figma. Two
+targeted fixes, both closing gaps between what agents were told and what
+they actually checked before writing something down:
+
+- **New: page-chrome reuse (constitution.md principle 19).** A screen or
+  step component must not rebuild a header, top nav, logo bar, or footer
+  that the app's root layout (`app/layout.tsx` or equivalent) already
+  renders — that produces a visible duplicate, not a stylistic choice.
+  `homero-planner` now checks this and records it under "Reused repo
+  patterns" before listing files to create; `homero-implementer` checks it
+  again before writing any chrome markup as a safety net; `homero-reviewer`
+  flags a duplicated header/logo as a blocking finding in both plan and
+  implementation mode. `docs/homero/architecture.md`'s generated template
+  gained a short "App shell" section naming where chrome actually belongs,
+  so agents have somewhere concrete to check instead of guessing the
+  convention fresh each time.
+- **Fix: validation error copy was being invented instead of sourced from
+  Figma.** `homero-figma` said to "confirm the exact validation error copy"
+  but never said to actually look for it — most designs put error copy on a
+  separate error/invalid-state component variant, not inline in the
+  happy-path frame, so a plain read of the frame it was pointed at found
+  nothing and produced generic copy ("Campo requerido") instead. Constitution
+  principle 14 and `homero-figma` (both clients) now require actually
+  checking for an error-state variant via `get_metadata`/`get_design_context`
+  before writing error copy down; if none exists anywhere in the file after
+  actually looking, that's an open question, not license to invent one.
+
 ## 0.12.0
 
 - **Breaking: `homero feature create` no longer creates the feature branch —

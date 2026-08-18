@@ -9,8 +9,18 @@ Apply this rule whenever editing React UI components.
   one that already covers the need — ask by the specific need, not a
   generic category
 - Import directly from `tomaco-components`
-- Do not create trivial wrappers
-- Prefer approved layout classes and tokens before custom CSS
+- Do not create trivial wrappers (a `Controller` wrapper for React Hook Form
+  integration is a legitimate exception — see `tomaco-design-system`'s "React
+  Hook Form integration" — it adds real logic, not just indirection)
+- Layer styling in this order, confirmed as the real convention across
+  production Falabella Seguros repos: Bootstrap-compatible classes for
+  layout (`d-flex`, `gap-*`, `col-*`), Tomaco classes for tokens
+  (`text-neutral60`, `bg-blueberry5`, spacing like `mb16`), and a small set
+  of project-defined custom classes in the global stylesheet only for what
+  neither covers (e.g. an arbitrary max-width Tomaco's containers don't
+  provide — see `tomaco-design-system`'s css-utilities reference). Do not
+  reach for custom CSS or inline styles before checking whether Bootstrap or
+  Tomaco already covers it.
 - Translate design output to Tomaco, not the other way around
 
 ## Reject
