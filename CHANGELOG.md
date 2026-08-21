@@ -5,6 +5,57 @@ explaining version boundaries that change `homero upgrade`'s behavior, not a
 full history of every change. Run `homero version --target .` to see what
 your install is actually on.
 
+## 0.19.2
+
+Real-world report: `/homero-discover` on a **brand-new** project (`homero
+init`, never discovered) immediately said the config already looked
+discovered and refused to proceed without `--force`, while also noting
+`package-lock.json` says npm but the config records pnpm. Diagnosed with a
+workflow (parallel code trace + adversarial verification) instead of
+guessing — confirmed both symptoms share one root cause.
+
+- **Fix: there was no code-level "already discovered" signal — the check
+  was a fuzzy LLM prose heuristic reading `homero.config.json`'s general
+  shape ("`discovery`/`stack`/`contracts` fields are filled in, not
+  `TBD`").** `homero init` seeds `packageManager` (`"pnpm"`), all of
+  `commands`, `product`, `paths`, `transport`, and 6 of `contracts`' 7
+  fields with concrete, plausible-looking template values *before any
+  human answers a single question* — only `contracts.source` ships as an
+  explicit `"TBD"`. An agent skimming for "does anything say TBD" finds
+  that one hit and concludes the repo is already discovered, even though
+  the actual `discovery`/`stack` keys don't exist yet at that point (they
+  are only ever added by `discoveredConfig()`, reachable exclusively from
+  inside `discover()`). Because the coordinator short-circuits before ever
+  calling `discover`, `detectPackageManager()`'s real lockfile-sniffing
+  logic never runs either — explaining the pnpm/npm mismatch as a
+  downstream symptom of the same bug, not a second one.
+- `discoveredConfig()` now writes `discovery.discoveredAt` (an ISO
+  timestamp) unconditionally, the one field only a real `discover()` run
+  ever sets. Every prose "already/still looks discovered" check across
+  both clients (`ai-workflow.md`, `homero-discover.md`/`.prompt.md`,
+  `homero-coordinator.md`/`.agent.md`, `homero.md`/`.prompt.md`,
+  `homero-plan.md`/`.prompt.md`) now checks that specific field instead of
+  judging how populated the rest of the config looks.
+
+## 0.19.1
+
+Resolves the open item from 0.19.0: the real, approved Salud `Summary`
+widget reads its Zustand stores directly, contradicting
+`rules/step-widgets.md`'s "must not read state stores directly" rule.
+Confirmed the user's own follow-up observation that `Header` does the same
+— two independent flow-spanning widgets converging on the same pattern in
+real code is a deliberate convention, not isolated tech debt.
+
+- **`step-widgets.md`/`.instructions.md` (both clients) and
+  `docs/homero/architecture.md`**: the "must not read state stores
+  directly" rule now carries a scoped exception for exactly `Header` and
+  `Summary` — the flow-spanning chrome widgets imported once into every
+  step, where multi-country variance makes props-drilling the full
+  aggregated state at every call site more boilerplate than the coupling
+  it avoids. Any other shared widget (a reusable card, a status badge)
+  still takes props — the exception is scoped to these two widgets by
+  name, not to "shared widgets" as a category.
+
 ## 0.19.0
 
 Fed two real, UI/UX-approved production codebases into the harness's design

@@ -28,7 +28,7 @@ const repoRoot = path.resolve(currentDir, "../../..");
 // scripts/homero/homero.mjs. `homero upgrade` compares it against the installed
 // homeroVersion to decide what to refresh. Kept in lockstep with package.json by
 // scripts/self-test.mjs — bump both together.
-const homeroVersion = "0.19.0";
+const homeroVersion = "0.19.2";
 
 function readArg(name) {
   const index = commandArgs.indexOf(name);
@@ -789,6 +789,12 @@ function discoveredConfig(config, answers) {
     },
     discovery: {
       ...config.discovery,
+      // The one field discover() itself writes unconditionally, independent of any answer.
+      // homero init seeds packageManager/commands/contracts with concrete, plausible-looking
+      // template defaults (not "TBD") -- discoveredAt is the only signal that a real discover
+      // run actually happened, so agent prompts must check this field, not whether the rest of
+      // the config "looks filled in."
+      discoveredAt: new Date().toISOString(),
       projectStatus: answers.projectStatus,
       monorepo: answers.monorepo,
       countries: answers.countries,

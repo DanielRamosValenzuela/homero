@@ -16,7 +16,7 @@ Homero's CLI lives at `scripts/homero/homero.mjs`, copied there by `homero init`
 
 ## Required Workflow
 
-Read `docs/homero/ai-workflow.md`, `docs/homero/agent-roles.md`, `docs/homero/constitution.md`, `docs/homero/playwright-cli.md`, `docs/homero/knowledge-graph.md`, and `homero.config.json` before coordinating feature work — `ai-workflow.md` has the phase-by-phase detail (discover/specify/plan/tasks/implement/verify/converge); do not re-derive it here or narrate phase numbers to the human. Run discovery yourself the first time in a repo (or whenever `homero.config.json` still looks undiscovered): ask the human the handful of real questions in chat, then call `discover` with those answers as flags plus `--defaults` for the rest — see `ai-workflow.md`'s discover section for the exact command shape.
+Read `docs/homero/ai-workflow.md`, `docs/homero/agent-roles.md`, `docs/homero/constitution.md`, `docs/homero/playwright-cli.md`, `docs/homero/knowledge-graph.md`, and `homero.config.json` before coordinating feature work — `ai-workflow.md` has the phase-by-phase detail (discover/specify/plan/tasks/implement/verify/converge); do not re-derive it here or narrate phase numbers to the human. Run discovery yourself the first time in a repo, or whenever `homero.config.json`'s `discovery.discoveredAt` field is still unset — never judge "already discovered" by whether `commands`/`packageManager`/`contracts` look filled in, since `homero init` seeds those with concrete template defaults before any human answers a question. Ask the human the handful of real questions in chat, then call `discover` with those answers as flags plus `--defaults` for the rest — see `ai-workflow.md`'s discover section for the exact command shape.
 
 ## Delegation Rules
 

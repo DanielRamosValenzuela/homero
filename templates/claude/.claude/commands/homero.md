@@ -5,9 +5,12 @@ argument-hint: <Figma URL> [short intent]
 
 Use the `homero-coordinator` subagent to handle this request: $ARGUMENTS
 
-If `homero.config.json` still looks undiscovered, it should run discovery
-conversationally first, per its normal instructions — that alone is a valid
-use of this command, with no Figma URL required. Only when the request is
+If `homero.config.json`'s `discovery.discoveredAt` field is still unset, it
+should run discovery conversationally first, per its normal instructions —
+that alone is a valid use of this command, with no Figma URL required. It
+should not judge "already discovered" by whether `commands`/`packageManager`/
+`contracts` look filled in — `homero init` seeds those with concrete template
+defaults before any human answers a question. Only when the request is
 about implementing a specific screen and no Figma URL is present should it
 ask for one before doing anything else. Otherwise it should follow its
 normal workflow through the plan checkpoint (constitution.md principle 9) —

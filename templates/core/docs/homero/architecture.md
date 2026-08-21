@@ -50,8 +50,12 @@
   or extend it instead of duplicating
 - Cross-step layout and summary widgets live under `src/widgets/` (or the
   path recorded in `homero.config.json` `paths.widgetsRoot`)
-- A shared order-summary or step-summary widget should not read state stores
-  directly; each screen reads its own store and passes primitives as props
+- A shared widget should not read state stores directly — each screen reads
+  its own store and passes primitives as props — **except the
+  flow-spanning chrome widgets imported once into every step, `Header` and
+  `Summary` (confirmed real convention in production Falabella Seguros
+  code, scoped to these two, not a blanket allowance)**; see
+  `.claude/rules/step-widgets.md` for the full rationale
 - Prefer one shared two-column step layout (header + content + optional
   summary aside) over duplicating layout per step
 - When a new step needs to appear in a shared summary, extend the existing

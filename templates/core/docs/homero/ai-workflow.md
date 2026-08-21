@@ -68,8 +68,15 @@ the default is pnpm, but plenty of repos aren't:
 node scripts/homero/homero.mjs discover --target . --framework "Next.js 14" --formStack "React Hook Form + Zod" --countries "cl,pe" --packageManager "npm" --defaults
 ```
 
-Skip this phase entirely once `homero.config.json` already looks discovered
-(its `discovery`/`stack`/`contracts` fields are filled in, not `TBD`).
+Skip this phase entirely once `homero.config.json`'s `discovery.discoveredAt`
+field is already set — that is the only reliable signal a real `discover` run
+has happened. Do not use "does `commands`/`packageManager`/`contracts` look
+filled in" as the test: `homero init` seeds those with concrete, plausible
+template defaults (e.g. `packageManager: "pnpm"`, real `commands.lint` etc.)
+before any human ever answers a discovery question, so a freshly-`init`'d,
+never-discovered repo can look fully populated at a glance. `discoveredAt` is
+written by `discover()` itself and by nothing else — a real, unambiguous
+marker instead of a judgment call about how "filled in" the rest looks.
 
 ### specify
 

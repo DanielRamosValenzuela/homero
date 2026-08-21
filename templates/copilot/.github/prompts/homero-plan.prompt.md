@@ -5,9 +5,12 @@ argument-hint: <Figma URL> [short intent]
 ---
 
 Treat everything typed after `/homero-plan` as the Figma URL and/or intent
-for this feature. If `homero.config.json` still looks undiscovered, run
-discovery conversationally first, per your normal homero-coordinator
-instructions. Otherwise: derive or locate the feature, delegate to
+for this feature. If `homero.config.json`'s `discovery.discoveredAt` field is
+still unset, run discovery conversationally first, per your normal
+homero-coordinator instructions — do not judge "already discovered" by
+whether `commands`/`packageManager`/`contracts` look filled in, since `homero
+init` seeds those with concrete template defaults before any human answers a
+question. Otherwise: derive or locate the feature, delegate to
 `homero-figma`/`homero-contracts`/`homero-planner`, and write
 `specs/<id>/spec.md` and `specs/<id>/plan.md` with everything `homero
 feature check` requires — including every Tomaco component/token and the

@@ -28,9 +28,15 @@ yourself with what you learned, adding `--defaults` to fill in anything not
 worth asking about for this repo.
 
 Do not create a feature, and do not start implementing anything — this
-command is discovery only. If `homero.config.json` already looks discovered,
-say so and ask whether the human wants to re-run it with `--force` before
-doing anything else.
+command is discovery only. Check `homero.config.json`'s `discovery.discoveredAt`
+field specifically — if it's already set, say so and ask whether the human
+wants to re-run with `--force` before doing anything else. Do not judge
+"already discovered" by whether `commands`/`packageManager`/`contracts` look
+filled in: `homero init` seeds those with concrete template defaults (e.g.
+`packageManager: "pnpm"`) before any human answers a single question, so a
+brand-new, never-discovered repo can look fully populated at a glance —
+`discoveredAt` is the only field `discover()` itself writes, and the only
+reliable signal a real run happened.
 
 **Closing report.** Once `discover` finishes, report what was recorded and
 stop there — say what comes next in one plain sentence: run `/homero-plan

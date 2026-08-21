@@ -878,6 +878,19 @@ if (!catalogAfterUpgrade.includes("`2.0.0`")) {
 const discoverMixedRoot = fs.mkdtempSync(path.join(os.tmpdir(), "homero-self-test-discover-mixed-"));
 run(["init", "--target", discoverMixedRoot, "--client", "both", "--project-name", "homero-self-test-discover-mixed"], { cliPath: sourceCliPath });
 
+// A brand-new, never-discovered project must not carry the "already discovered" signal, even
+// though init seeds packageManager/commands/contracts with concrete, plausible-looking template
+// defaults (not "TBD") that could otherwise be mistaken for real discover answers.
+const freshInitConfig = JSON.parse(fs.readFileSync(path.join(discoverMixedRoot, "homero.config.json"), "utf8"));
+if (freshInitConfig.discovery?.discoveredAt) {
+  console.error("Expected a freshly-init'd project to have no discovery.discoveredAt yet");
+  process.exit(1);
+}
+if (freshInitConfig.packageManager !== "pnpm" || !freshInitConfig.commands?.lint) {
+  console.error("Expected a freshly-init'd project to still carry init's concrete template defaults (the exact false-positive risk discoveredAt exists to guard against)");
+  process.exit(1);
+}
+
 const discoverMixedCliPath = path.join(discoverMixedRoot, "scripts", "homero", "homero.mjs");
 run([
   "discover",
@@ -900,6 +913,10 @@ if (discoverMixedConfig.discovery?.countries !== "cl, pe") {
 // covers fields the explicit flags didn't answer, in the same call.
 if (!discoverMixedConfig.stack?.forms) {
   console.error("Expected discover --defaults to fill in stack.forms for a field with no explicit flag");
+  process.exit(1);
+}
+if (!discoverMixedConfig.discovery?.discoveredAt || Number.isNaN(Date.parse(discoverMixedConfig.discovery.discoveredAt))) {
+  console.error(`Expected discover to write a valid discovery.discoveredAt timestamp, got ${discoverMixedConfig.discovery?.discoveredAt}`);
   process.exit(1);
 }
 

@@ -5,9 +5,12 @@ argument-hint: <Figma URL> [short intent]
 ---
 
 Treat everything typed after `/homero` as the Figma URL and/or intent for
-this task. If `homero.config.json` still looks undiscovered, run discovery
-conversationally first, per your normal homero-coordinator instructions —
-that alone is a valid use of this prompt, with no Figma URL required. Only
+this task. If `homero.config.json`'s `discovery.discoveredAt` field is still
+unset, run discovery conversationally first, per your normal
+homero-coordinator instructions — that alone is a valid use of this prompt,
+with no Figma URL required. Do not judge "already discovered" by whether
+`commands`/`packageManager`/`contracts` look filled in — `homero init` seeds
+those with concrete template defaults before any human answers a question. Only
 when the intent is to implement a specific screen and no Figma URL is
 present should you ask for one before doing anything else. Otherwise follow
 your normal homero-coordinator workflow through the plan checkpoint

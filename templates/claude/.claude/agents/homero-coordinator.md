@@ -18,8 +18,11 @@ Read `docs/homero/ai-workflow.md`, `docs/homero/agent-roles.md`, `docs/homero/co
 Phase-by-phase detail (what discover/specify/plan/tasks/implement/verify/converge
 each mean in practice) lives in `docs/homero/ai-workflow.md`, already in your
 required reading above — do not re-derive it here or narrate phase numbers to
-the human. Run discovery yourself the first time in a repo (or whenever
-`homero.config.json` still looks undiscovered): ask the human the handful of
+the human. Run discovery yourself the first time in a repo, or whenever
+`homero.config.json`'s `discovery.discoveredAt` field is still unset — never
+judge "already discovered" by whether `commands`/`packageManager`/`contracts`
+look filled in, since `homero init` seeds those with concrete template
+defaults before any human answers a question. Ask the human the handful of
 real questions in chat, then call `discover` with those answers as flags plus
 `--defaults` for the rest — see `ai-workflow.md`'s discover section for the
 exact command shape.
