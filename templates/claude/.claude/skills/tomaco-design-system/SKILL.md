@@ -34,6 +34,13 @@ manually-verified list of behavioral traps (misleading defaults, silent
 truncation, hardcoded ids, props that compile but do nothing) that no generated
 catalog or `.d.ts` file will surface.
 
+Before adding any wrapper padding/margin/width/overflow CSS around a Tomaco
+component, check `references/component-spacing.md` for that component's own
+baked-in default first — a Figma-measured value is the rendered result,
+which already includes what the component provides by default. This file
+also has the exact reason a raw Playwright `.click()` can misfire on
+`CheckBox`/`RadioButton`/`Switch`, and `Dialog`'s real overflow behavior.
+
 For CSS utility classes, the grid, and color tokens, use
 `references/css-utilities.md` — an exhaustive positive reference (patterns and
 ranges, not just traps), verified against the real `styles/*.sass` sources and

@@ -5,6 +5,68 @@ explaining version boundaries that change `homero upgrade`'s behavior, not a
 full history of every change. Run `homero version --target .` to see what
 your install is actually on.
 
+## 0.19.0
+
+Fed two real, UI/UX-approved production codebases into the harness's design
+skills (Tomaco's own component library source, and a full Salud repo scoped
+to layout/composition only, since Homero serves the whole portfolio, not
+one product) instead of relying on written guidance alone — plus three
+smaller fixes from a direct critique/Q&A round.
+
+- **New: `references/component-spacing.md` (Claude) /
+  `tomaco-component-spacing.md` (Copilot)** — exact, source-verified default
+  padding/dimensions/overflow for all ~35 Tomaco components, extracted
+  directly from `tomaco-components`' own `.sass` files. Replaces "check the
+  gotchas doc" with real numbers: `Input`'s own `16px 12px` default padding
+  (the exact source of the 0.18.1 double-counting defect), `Dialog`'s real
+  overflow behavior (`overflow: auto` on both axes, not `overflow-x:
+  hidden` — the source of a real X-axis overflow defect), and why a raw
+  Playwright `.click()` can misfire on `CheckBox`/`RadioButton`/`Switch`
+  (absolutely-positioned native input under a label that commonly nests a
+  link). `homero-figma`, `homero-implementer`, and `homero-reviewer` (both
+  clients) now point at this file instead of a generic "check defaults"
+  instruction, and `homero-implementer` gained an explicit rule to prefer
+  `.check()`/`.setChecked()` over `.click()` for those three components.
+- **`seguros-falabella-ui-ux`'s "Known Cross-Product Patterns" extended**
+  with real, generalized (non-business-specific) composition patterns from
+  a second approved product: the shared `Layout` molecule's real wrapper
+  class and conditional padding, "which routes get a summary" as a
+  Layout-level path-allowlist decision rather than a per-page one, and a
+  real breakpoint-ambiguity gotcha (JS media query vs. Bootstrap-named grid
+  classes in the same file, can't assume which stylesheet governs at
+  runtime).
+- **Fix: `homero-planner` could ask an "open question" it had already
+  resolved itself**, redundant since the answer was already known. It now
+  must try to resolve a question against existing repo patterns, the
+  spec/contract, or `seguros-falabella-ui-ux`'s known patterns first, and
+  state a resolved answer as a decision with citation instead of asking it
+  again.
+- **Fix: `/homero-discover` still spent a conversational question on
+  `figmaSource`.** Even though the field only ever asked for a project-wide
+  workspace convention (TBD always valid, never a specific screen's link),
+  asking about it at all was redundant — `/homero-plan` is where a real
+  per-feature Figma URL is actually collected. Discover now defaults it to
+  `TBD` automatically and never asks.
+- **Fix: `homero-planner` could bundle too much independent work into one
+  task, leaving no checkpoint until all of it finished.** Traced with real
+  data from a test feature (`FEAT-001`'s `state.json`/`events.ndjson`):
+  `attempts: 0` on every task and zero `task-blocked` events confirmed the
+  reported ~1h implementation time was *not* retry looping — one task
+  covering contract, store, validation, country, and UI/browser tests
+  together ran 37 uninterrupted minutes, and a separate task covering 10
+  Playwright evidence scenarios across 3 countries and 2 breakpoints ran
+  long enough to hit the agent runtime's own "working for a while" pause.
+  `homero-planner` now splits test-heavy or evidence-heavy work into more,
+  smaller ordered tasks along natural seams instead of one large task —
+  same total work, more checkpoints.
+
+**Open item, not resolved in this release**: the real, approved Salud
+`Summary` widget reads its Zustand stores directly, which contradicts
+`rules/step-widgets.md`'s existing "must not read state stores directly"
+requirement. Left as-is pending a decision on which is the intended
+convention going forward — see the extraction notes for the real code
+citation.
+
 ## 0.18.1
 
 - **Fix: a measured Figma spacing value could get applied on top of a Tomaco

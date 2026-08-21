@@ -28,7 +28,7 @@ const repoRoot = path.resolve(currentDir, "../../..");
 // scripts/homero/homero.mjs. `homero upgrade` compares it against the installed
 // homeroVersion to decide what to refresh. Kept in lockstep with package.json by
 // scripts/self-test.mjs — bump both together.
-const homeroVersion = "0.18.1";
+const homeroVersion = "0.19.0";
 
 function readArg(name) {
   const index = commandArgs.indexOf(name);

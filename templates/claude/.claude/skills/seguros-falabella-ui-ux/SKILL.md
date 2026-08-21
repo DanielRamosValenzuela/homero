@@ -119,6 +119,18 @@ Real Falabella Seguros screens compose in this layer order: a shared chrome mole
 
 A recurring Falabella Seguros interaction, confirmed identical in two independent products (Vida, Salud): a switch labeled "¿Estoy recibiendo ayuda de un asesor?" that, when turned on, reveals a required "Código del asesor" text input (max 8 characters) with a tooltip explaining who provides the code, validated the same as any other required field, and cleared when the switch is turned back off. When this exact switch appears in a quote/onboarding flow, treat this as the confirmed default behavior and present it to the human as "detected known pattern: X — confirm, or tell me if this instance differs" instead of asking what it does from zero. Still confirm — Figma may have intentionally deviated for a specific feature — the question is now a confirmation, not a blank one. This pattern is specific to the sales/quoting phase; do not assume an "advisor" switch on a different kind of screen (e.g. account servicing, claims) means the same thing without checking.
 
+### Layout wrapper class (real citation, generalize the shape not the literal class)
+
+The shared chrome/`Layout` molecule confirmed above constrains width and padding with real classes, not a Tomaco container prop: `container-fluid d-flex flex-column align-items-center justify-content-center max-width-1152`, plus **conditional** side padding (`pl24 pr24` mobile vs `pl64 pr64` desktop) and **conditional** bottom padding depending on whether that specific step shows a summary sidebar on mobile. Don't assume a flat page padding value — check whether the repo's own `Layout` already varies it by viewport and by "has summary," the same shape as this confirmed example, before hardcoding one number.
+
+### Which routes get a summary is a Layout-level decision, not a per-page one
+
+Confirmed pattern: the shared `Layout` molecule itself holds a path allowlist (which routes render the summary sidebar) and derives it from the current route — individual step/page components do not decide this themselves. When adding a new step to an existing flow, extend that shared allowlist/mapping instead of having the new step render its own summary logic — same principle as the existing step-to-section mapping rule in `rules/step-widgets.md`, applied one level up (route-to-layout, not just step-to-section).
+
+### Breakpoint source ambiguity — verify before trusting `col-md-*`/`col-lg-*` classes
+
+A real production repo was found mixing a JS-side mobile check (`useMediaQuery('(max-width: 767px)')`) with Bootstrap-named grid classes (`col-md-*`, `col-lg-*`) in the same layout. Because Tomaco's own stylesheet loads its helpers after a Bootstrap-like grid and several class names collide at the same specificity (see `tomaco.md`'s "Utility-class traps"), which stylesheet actually governs those column classes at runtime cannot be assumed from the class name alone. Before relying on a `col-*`/breakpoint class to behave a specific way, check the built CSS or `tomaco-design-system`'s grid reference rather than assuming Bootstrap or Tomaco semantics from the class name.
+
 ## Workflow
 
 ### Step 1: Classify the Task
