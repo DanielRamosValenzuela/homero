@@ -705,6 +705,11 @@ if (singleClientConfig.homeroVersion !== homeroVersionConstant || singleClientCo
   process.exit(1);
 }
 
+if (!fs.existsSync(path.join(singleClientRoot, "CLAUDE.md"))) {
+  console.error("Expected a --client claude install to create CLAUDE.md");
+  process.exit(1);
+}
+
 // No --client flag on purpose: validate must fall back to the client recorded at install
 // time. Defaulting to "both" here failed every claude-only install with a full set of
 // bogus "missing .github/**" errors for the adapter it deliberately never installed.
@@ -792,6 +797,18 @@ run(["init", "--target", copilotClientRoot, "--client", "copilot", "--project-na
 const copilotClientConfig = JSON.parse(fs.readFileSync(copilotClientConfigPath, "utf8"));
 if (copilotClientConfig.homeroVersion !== homeroVersionConstant || copilotClientConfig.homeroClient !== "copilot") {
   console.error(`Expected init to stamp homeroVersion=${homeroVersionConstant} homeroClient=copilot, got homeroVersion=${copilotClientConfig.homeroVersion} homeroClient=${copilotClientConfig.homeroClient}`);
+  process.exit(1);
+}
+
+// CLAUDE.md lives under templates/claude/ (not templates/core/) specifically so a
+// copilot-only install never receives it -- it references .claude/rules/ paths that
+// don't exist without the claude client, which would be a broken, misleading file.
+if (fs.existsSync(path.join(copilotClientRoot, "CLAUDE.md"))) {
+  console.error("Expected a --client copilot install to NOT create CLAUDE.md (it references .claude/-only paths)");
+  process.exit(1);
+}
+if (!fs.existsSync(path.join(copilotClientRoot, "AGENTS.md"))) {
+  console.error("Expected a --client copilot install to still create AGENTS.md (client-agnostic)");
   process.exit(1);
 }
 

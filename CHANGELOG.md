@@ -5,6 +5,22 @@ explaining version boundaries that change `homero upgrade`'s behavior, not a
 full history of every change. Run `homero version --target .` to see what
 your install is actually on.
 
+## 0.20.1
+
+Found while packaging Homero's Copilot templates for a copilot-only
+consumer (no `.claude/` adapter installed at all): `--client copilot`
+still shipped `CLAUDE.md` at the target repo's root, because it lived
+under `templates/core/` (copied for every client) instead of
+`templates/claude/`. The file explicitly references `.claude/rules/*.md`
+paths, so a copilot-only install got a broken, misleading file pointing
+at paths that were never installed.
+
+- Moved `CLAUDE.md` from `templates/core/` to `templates/claude/` — it is
+  now only copied for `--client claude`/`both`, matching every other
+  Claude-specific file. `AGENTS.md` stays in `templates/core/` (genuinely
+  client-agnostic content). Added regression coverage in `self-test.mjs`
+  for both directions (present for claude, absent for copilot-only).
+
 ## 0.20.0
 
 Real-world report: `/homero-plan` currently asks almost nothing, always
