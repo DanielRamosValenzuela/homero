@@ -5,6 +5,52 @@ explaining version boundaries that change `homero upgrade`'s behavior, not a
 full history of every change. Run `homero version --target .` to see what
 your install is actually on.
 
+## 0.20.0
+
+Real-world report: `/homero-plan` currently asks almost nothing, always
+asks a pointless "is this the correct Figma?" confirmation, and — in a
+deliberate test where mobile was withheld from the Figma input — never
+noticed or asked about it. Diagnosed with a workflow (3 parallel traces +
+synthesis) instead of guessing at which prompt paragraph was responsible.
+
+- **Fix: the "is this the correct Figma?" question was never written into
+  any prompt — confirmed emergent, unprompted model caution, not an
+  existing instruction to remove.** `homero-figma` (both clients) now
+  states explicitly that a Figma URL/node the human supplies is correct by
+  definition; the only valid check is technical (a `node-id` that won't
+  resolve), never a social re-confirmation. `homero-coordinator` (both
+  clients) got the same reinforcement at the point it delegates to
+  `homero-figma`.
+- **Fix: no instruction anywhere required checking whether a Figma
+  selection covers both desktop and mobile — every mention of breakpoints
+  only formatted whatever was handed over, never verified completeness.**
+  `homero-figma` (both clients) now checks breakpoint coverage per screen,
+  using `get_metadata` to look for a sibling frame at the other breakpoint
+  before concluding it's missing, and records an explicit two-sided open
+  question when it genuinely can't find one — instead of silently treating
+  one breakpoint as the whole spec. `homero-reviewer`'s plan mode (both
+  clients) now flags a plan that silently covers only one breakpoint as a
+  blocking finding.
+- **Fix: no instruction required extracting or asking about a field's
+  input format/mask (e.g. RUT dot-dash formatting, phone digit grouping) —
+  the closest existing text was about placeholder-as-descriptor and
+  display-time data obfuscation, a different concept.** `homero-figma`
+  (both clients) now extends its existing "check Figma for X, else open
+  question, never invent" pattern (already used for error copy) to input
+  masks. `form-patterns.md`/`seguros-falabella-ui-ux.instructions.md` gained
+  a note distinguishing input-formatting masks from display-time masking,
+  since the existing "masking" section could be misread as already
+  covering this.
+- **`homero-figma` (both clients) gained a closing standing rule**:
+  "absence is only valid once you've actually looked for it," covering
+  every extraction category by name (including ones not yet enumerated) —
+  a backstop on top of the three specific fixes above, not a replacement
+  for them.
+- **`homero-coordinator` (both clients) now asks all open questions in one
+  message, never trickled across several** — a second batched round is
+  only valid for genuinely new questions the human's own answers surface,
+  not for ones that should have been included the first time.
+
 ## 0.19.2
 
 Real-world report: `/homero-discover` on a **brand-new** project (`homero

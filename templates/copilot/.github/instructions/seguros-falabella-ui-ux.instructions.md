@@ -199,7 +199,12 @@ Structural/behavioral only — for exact component names (`Input`, `TextArea`,
 - **Placeholder/masking**: placeholder text clarifies expected input, it does
   not duplicate the label and it is never the only field descriptor;
   sensitive values shown back to the user (summaries, lists, recaps) follow a
-  masking rule.
+  masking rule. **This is a different concept from a field's input-formatting
+  mask** (e.g. a RUT field auto-inserting `.`/`-` as typed, a phone field's
+  digit grouping) — that's a live-typing behavior sourced from Figma's
+  placeholder/example text or an annotation for that specific field, not
+  display-time obfuscation. `homero-figma` extracts or flags that per field;
+  don't treat this bullet's "masking" as already covering it.
 - **Checkboxes**: required legal acceptance must be visually and
   semantically separate from optional marketing/lead-capture consent —
   optional consent never competes visually with the primary action.

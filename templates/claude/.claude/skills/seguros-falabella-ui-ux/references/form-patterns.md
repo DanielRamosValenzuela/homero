@@ -72,6 +72,8 @@ UX rule:
 - Sensitive values shown back to the user should follow a masking rule, especially in summaries, lists, or contracting recaps.
 - Never rely on placeholder text as the only field descriptor.
 
+**This is a different concept from a field's input-formatting mask** (e.g. a RUT field auto-inserting `.`/`-` as the user types, a phone field's digit grouping, a date field's separator pattern) — that is a live-typing behavior sourced from Figma's placeholder/example text or an annotation for that specific field, not a display-time obfuscation rule. `homero-figma` is responsible for extracting or flagging that per field; do not treat this section's "masking" as already covering it.
+
 ## Checkbox patterns
 
 Patterns observed:
