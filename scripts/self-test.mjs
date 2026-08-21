@@ -322,7 +322,12 @@ run([
   "--figma-version", "approved-v1",
   "--contract-mode", "contract-draft",
   "--contract-source", "docs/contracts/quote.openapi.yaml",
-  "--countries", "CL, pe"
+  "--countries", "CL, pe",
+  // Only desktop evidence gets set up below -- matches what feature check/verify
+  // should actually require, now that design.viewports is a real, checked claim
+  // rather than a hardcoded desktop+mobile default (see the dedicated viewports
+  // regression block further down for the desktop+mobile / mismatch cases).
+  "--viewports", "desktop"
 ]);
 runExpectFailure(["feature", "check", "--target", targetRoot, "--id", "FEAT-001"]);
 
@@ -496,6 +501,25 @@ if (!Array.isArray(firstReceipt.checks) || firstReceipt.checks.length === 0 || f
   console.error(`Expected every check in the verification receipt to record a numeric durationMs, got: ${JSON.stringify(firstReceipt.checks)}`);
   process.exit(1);
 }
+
+// Regression test: design.viewports is a real, checked claim -- claiming "mobile" with no
+// matching screenshot filename must fail verify with a specific message, not silently pass
+// the way the old hardcoded-desktop+mobile default always did regardless of real coverage.
+const featureWithMobileClaim = JSON.parse(fs.readFileSync(featurePath, "utf8"));
+featureWithMobileClaim.design.viewports = ["desktop", "mobile"];
+fs.writeFileSync(featurePath, `${JSON.stringify(featureWithMobileClaim, null, 2)}\n`, "utf8");
+const viewportMismatchOutput = runExpectFailureCaptureOutput(["verify", "--target", targetRoot, "--id", "FEAT-001"]);
+if (!viewportMismatchOutput.includes('design.viewports lists "mobile"') || !viewportMismatchOutput.includes("-mobile")) {
+  console.error(`Expected a viewport-evidence-mismatch failure naming "mobile", got:\n${viewportMismatchOutput}`);
+  process.exit(1);
+}
+// Revert both the claim and the verifyAttempts increment the failed call above caused, so
+// the rest of this suite (including the later verify-exhausted assertions) sees the same
+// state it would have without this regression block.
+fs.writeFileSync(featurePath, `${JSON.stringify(feature, null, 2)}\n`, "utf8");
+const stateAfterMismatch = JSON.parse(fs.readFileSync(path.join(featureDir, "state.json"), "utf8"));
+stateAfterMismatch.verifyAttempts = 0;
+fs.writeFileSync(path.join(featureDir, "state.json"), `${JSON.stringify(stateAfterMismatch, null, 2)}\n`, "utf8");
 
 // No worktree: targetRoot itself should now be sitting on the feature branch.
 const featureBranch = spawnSync("git", ["branch", "--show-current"], { cwd: targetRoot, encoding: "utf8" }).stdout.trim();
@@ -958,7 +982,8 @@ run([
   "--figma-version", "approved-v1",
   "--contract-mode", "contract-draft",
   "--contract-source", "docs/contracts/phases.openapi.yaml",
-  "--countries", "cl"
+  "--countries", "cl",
+  "--viewports", "desktop"
 ]);
 
 // No worktree: FEAT-002 is checked out in targetRoot itself, same as FEAT-001 was.
@@ -988,13 +1013,13 @@ fillRequiredPlanSections(phaseFeatureSpecDir);
 const phaseEvidence = JSON.parse(fs.readFileSync(phaseEvidencePath, "utf8"));
 fs.mkdirSync(path.join(phaseFeatureDir, "evidence", "screenshots"), { recursive: true });
 fs.mkdirSync(path.join(phaseFeatureDir, "evidence", "snapshots"), { recursive: true });
-fs.writeFileSync(path.join(phaseFeatureDir, "evidence", "screenshots", "phases.png"), "test screenshot", "utf8");
-fs.writeFileSync(path.join(phaseFeatureDir, "evidence", "snapshots", "phases.yaml"), "test snapshot", "utf8");
+fs.writeFileSync(path.join(phaseFeatureDir, "evidence", "screenshots", "phases-desktop.png"), "test screenshot", "utf8");
+fs.writeFileSync(path.join(phaseFeatureDir, "evidence", "snapshots", "phases-desktop.yaml"), "test snapshot", "utf8");
 phaseEvidence.scenarios = [{
   name: "see phase transitions",
   status: "passed",
-  screenshot: "evidence/screenshots/phases.png",
-  snapshot: "evidence/snapshots/phases.yaml"
+  screenshot: "evidence/screenshots/phases-desktop.png",
+  snapshot: "evidence/snapshots/phases-desktop.yaml"
 }];
 fs.writeFileSync(phaseEvidencePath, `${JSON.stringify(phaseEvidence, null, 2)}\n`, "utf8");
 
@@ -1093,7 +1118,8 @@ run([
   "--figma-version", "approved-v1",
   "--contract-mode", "contract-draft",
   "--contract-source", "docs/contracts/copilot.openapi.yaml",
-  "--countries", "cl"
+  "--countries", "cl",
+  "--viewports", "desktop"
 ], { cliPath: copilotCliPath });
 
 // No worktree: FEAT-900 is checked out in copilotClientRoot itself.
@@ -1117,13 +1143,13 @@ fillRequiredPlanSections(copilotFeatureSpecDir);
 const copilotFeatureEvidence = JSON.parse(fs.readFileSync(copilotEvidencePath, "utf8"));
 fs.mkdirSync(path.join(copilotFeatureDir, "evidence", "screenshots"), { recursive: true });
 fs.mkdirSync(path.join(copilotFeatureDir, "evidence", "snapshots"), { recursive: true });
-fs.writeFileSync(path.join(copilotFeatureDir, "evidence", "screenshots", "copilot.png"), "test screenshot", "utf8");
-fs.writeFileSync(path.join(copilotFeatureDir, "evidence", "snapshots", "copilot.yaml"), "test snapshot", "utf8");
+fs.writeFileSync(path.join(copilotFeatureDir, "evidence", "screenshots", "copilot-desktop.png"), "test screenshot", "utf8");
+fs.writeFileSync(path.join(copilotFeatureDir, "evidence", "snapshots", "copilot-desktop.yaml"), "test snapshot", "utf8");
 copilotFeatureEvidence.scenarios = [{
   name: "complete the copilot-only lifecycle",
   status: "passed",
-  screenshot: "evidence/screenshots/copilot.png",
-  snapshot: "evidence/snapshots/copilot.yaml"
+  screenshot: "evidence/screenshots/copilot-desktop.png",
+  snapshot: "evidence/snapshots/copilot-desktop.yaml"
 }];
 fs.writeFileSync(copilotEvidencePath, `${JSON.stringify(copilotFeatureEvidence, null, 2)}\n`, "utf8");
 

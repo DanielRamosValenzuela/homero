@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { createInterface } from "node:readline/promises";
-import { spawnSync } from "node:child_process";
+import { spawnSync, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const args = process.argv.slice(2);
@@ -28,7 +28,7 @@ const repoRoot = path.resolve(currentDir, "../../..");
 // scripts/homero/homero.mjs. `homero upgrade` compares it against the installed
 // homeroVersion to decide what to refresh. Kept in lockstep with package.json by
 // scripts/self-test.mjs — bump both together.
-const homeroVersion = "0.20.1";
+const homeroVersion = "0.21.0";
 
 function readArg(name) {
   const index = commandArgs.indexOf(name);
@@ -77,11 +77,11 @@ Usage:
   homero validate [--target <repo>] [--client <copilot|claude|both>]
   homero generate form --target <repo> --name <FormName> --country <cl|pe|co> [--force]
   homero generate catalog [--target <repo>] [--package <specifier>]
-  homero feature create --target <repo> --id <id> --name <name> --figma <url> --figma-version <version> --contract-mode <contract-first|contract-draft|no-backend-exception> --countries <cl|cl,pe,...> [--contract-source <source>] [--contract-exception <reason>]
+  homero feature create --target <repo> --id <id> --name <name> --figma <url> --figma-version <version> --contract-mode <contract-first|contract-draft|no-backend-exception> --countries <cl|cl,pe,...> [--contract-source <source>] [--contract-exception <reason>] [--viewports <desktop|mobile|desktop,mobile>]
   homero feature check --target <repo> --id <id>
   homero verify --target <repo> --id <id>
   homero run --target <repo> --id <id> [--json]
-  homero task add --target <repo> --id <id> --title <title> [--paths <path,...>]
+  homero task add --target <repo> --id <id> --title <title> [--paths <path,...>] [--depends-on <task-id,...>]
   homero task verify --target <repo> --id <id> --task <task-id> --summary <summary>
   homero task block --target <repo> --id <id> --task <task-id> --reason <reason>
   homero task status --target <repo> --id <id> [--json]
@@ -873,7 +873,7 @@ function featurePaths(targetRoot, id, name) {
 // states — featureErrors() rejects a feature.json that still has this exact array, untouched.
 const defaultUiStates = ["loading", "success", "empty", "validation-error", "business-error", "server-error"];
 
-function featureTemplate({ id, name, branch, figmaUrl, figmaVersion, contractMode, contractSource, contractException, countries, config }) {
+function featureTemplate({ id, name, branch, figmaUrl, figmaVersion, contractMode, contractSource, contractException, countries, viewports, config }) {
   return {
     schemaVersion: 1,
     id,
@@ -892,7 +892,7 @@ function featureTemplate({ id, name, branch, figmaUrl, figmaVersion, contractMod
         nodeId: figmaNodeIdFromUrl(figmaUrl),
         version: figmaVersion
       },
-      viewports: ["desktop", "mobile"],
+      viewports: viewports ?? ["desktop", "mobile"],
       visualDiffThreshold: config.figma?.visualDiffThreshold ?? 0.01
     },
     contracts: {
@@ -1192,8 +1192,18 @@ function featureErrors(targetRoot, feature) {
     errors.push("feature's Figma URL must include a node-id (points at the whole file, not an approved screen)");
   }
 
-  if (!Array.isArray(feature.design?.viewports) || !feature.design.viewports.includes("desktop") || !feature.design.viewports.includes("mobile")) {
-    errors.push("feature must verify desktop and mobile viewports");
+  const knownViewports = new Set(["desktop", "mobile"]);
+  if (
+    !Array.isArray(feature.design?.viewports) ||
+    feature.design.viewports.length === 0 ||
+    !feature.design.viewports.every(viewport => knownViewports.has(viewport))
+  ) {
+    // Not hardcoded to require both: --viewports on `feature create` records what
+    // homero-figma actually confirmed (e.g. desktop-only when mobile was checked and
+    // genuinely out of scope) — this only rejects a missing/garbage value, not a
+    // deliberate single-viewport feature. playwrightEvidenceErrors() below is what checks
+    // real evidence exists for whichever viewports are recorded here.
+    errors.push("feature must record at least one confirmed viewport (desktop and/or mobile) in design.viewports");
   }
 
   if (!Number.isFinite(feature.design?.visualDiffThreshold) || feature.design.visualDiffThreshold < 0 || feature.design.visualDiffThreshold > 1) {
@@ -1375,6 +1385,23 @@ function playwrightEvidenceErrors(featureDir, feature) {
     }
   }
 
+  // design.viewports records which breakpoints were confirmed in scope (see feature
+  // create's --viewports) -- cross-check that real evidence exists for each one, instead
+  // of only checking the field's own shape. Screenshot filenames follow the established
+  // <country>-<scenario>-<breakpoint>.png convention (e.g. cl-pristine-mobile.png), so a
+  // claimed viewport with no matching screenshot filename means it was recorded but never
+  // actually captured. Checks the filename, not scenario.name, since the name is free-text
+  // description while the filename is what actually carries the breakpoint.
+  const screenshotBasenames = evidence.scenarios
+    .map(scenario => scenario.screenshot)
+    .filter(Boolean)
+    .map(screenshotPath => path.basename(screenshotPath, path.extname(screenshotPath)).toLowerCase());
+  for (const viewport of feature.design?.viewports ?? []) {
+    if (!screenshotBasenames.some(basename => basename.endsWith(`-${viewport}`))) {
+      errors.push(`design.viewports lists "${viewport}" but no Playwright CLI screenshot filename ends with "-${viewport}" (e.g. cl-pristine-${viewport}.png)`);
+    }
+  }
+
   return errors;
 }
 
@@ -1436,6 +1463,7 @@ function featureCreate() {
   const contractSource = readArg("--contract-source");
   const contractException = readArg("--contract-exception");
   const countriesArg = readArg("--countries");
+  const viewportsArg = readArg("--viewports");
 
   if (!targetArg || !id || !name || !figmaUrl || !figmaVersion || !contractMode || !countriesArg || hasFlag("--help")) {
     usage();
@@ -1448,6 +1476,19 @@ function featureCreate() {
 
   if (countries.length === 0) {
     fail("homero feature create requires --countries with at least one country.");
+  }
+
+  // Defaults to both for backward compatibility, but --viewports lets the coordinator
+  // record what homero-figma actually confirmed (e.g. desktop-only when mobile was
+  // checked and found out of scope) instead of a hardcoded claim that both were verified
+  // regardless of what was actually analyzed.
+  const knownViewports = new Set(["desktop", "mobile"]);
+  const viewports = viewportsArg
+    ? [...new Set(viewportsArg.split(",").map(value => value.trim().toLowerCase()).filter(Boolean))]
+    : ["desktop", "mobile"];
+
+  if (viewports.length === 0 || !viewports.every(viewport => knownViewports.has(viewport))) {
+    fail("homero feature create --viewports must be a comma-separated list using only: desktop, mobile.");
   }
 
   validateFeatureId(id);
@@ -1512,6 +1553,7 @@ function featureCreate() {
     contractSource,
     contractException,
     countries,
+    viewports,
     config
   });
 
@@ -1575,27 +1617,35 @@ function featureCheckCommand() {
 }
 
 function runVerificationCommand(targetRoot, name, command) {
-  // Recorded so a slow `homero verify` has real numbers to point at instead of a guess —
-  // e.g. telling a project-wide e2e suite apart from a genuinely slow typecheck.
+  // lint/typecheck/test/e2e are independent processes over the same source tree — none
+  // pipes into or depends on another (typecheck is --noEmit, not a build step feeding the
+  // rest) — so verifyFeature() runs every check concurrently via this Promise instead of
+  // blocking on spawnSync one at a time. Recorded durationMs still gives a slow `homero
+  // verify` real per-check numbers, same as before.
   const startedAt = Date.now();
-  const result = spawnSync(command, {
-    cwd: targetRoot,
-    shell: true,
-    encoding: "utf8"
+  return new Promise(resolve => {
+    const child = spawn(command, { cwd: targetRoot, shell: true });
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", chunk => { stdout += chunk; });
+    child.stderr.on("data", chunk => { stderr += chunk; });
+    child.on("close", exitCode => {
+      resolve({
+        name,
+        command,
+        exitCode,
+        stdout,
+        stderr,
+        passed: exitCode === 0,
+        durationMs: Date.now() - startedAt
+      });
+    });
   });
-
-  return {
-    name,
-    command,
-    exitCode: result.status,
-    stdout: result.stdout || "",
-    stderr: result.stderr || "",
-    passed: result.status === 0,
-    durationMs: Date.now() - startedAt
-  };
 }
 
-function verifyFeature() {
+async function verifyFeature() {
   const targetArg = readArg("--target");
   const id = readArg("--id");
 
@@ -1627,12 +1677,15 @@ function verifyFeature() {
   }
 
   const commandNames = feature.verification.required.filter(name => name !== "playwright-cli");
-  const commandResults = [];
 
-  for (const commandName of commandNames) {
+  // Independent checks (see runVerificationCommand) run concurrently — wall-clock drops
+  // from sum(lint, typecheck, test, e2e) to roughly max(...) instead of paying for each
+  // serially. Output is still written in commandNames order once everything settles, not
+  // completion order, so a receipt/log reader sees the same stable order as before.
+  const commandResults = await Promise.all(commandNames.map(commandName => {
     const command = workspaceConfig.commands?.[commandName];
     if (!command || typeof command !== "string") {
-      commandResults.push({
+      return {
         name: commandName,
         command: null,
         exitCode: null,
@@ -1640,12 +1693,13 @@ function verifyFeature() {
         stderr: `Missing homero.config.json commands.${commandName}`,
         passed: false,
         durationMs: 0
-      });
-      continue;
+      };
     }
 
-    const result = runVerificationCommand(workspaceRoot, commandName, command);
-    commandResults.push(result);
+    return runVerificationCommand(workspaceRoot, commandName, command);
+  }));
+
+  for (const result of commandResults) {
     process.stdout.write(result.stdout);
     process.stderr.write(result.stderr);
   }
@@ -1806,6 +1860,7 @@ function taskAdd() {
   const id = readArg("--id");
   const title = readArg("--title");
   const pathsArg = readArg("--paths");
+  const dependsOnArg = readArg("--depends-on");
 
   if (!targetArg || !id || !title || hasFlag("--help")) {
     usage();
@@ -1830,6 +1885,12 @@ function taskAdd() {
     id: nextTaskId(state),
     title: trimmedTitle,
     paths: pathsArg ? pathsArg.split(",").map(value => value.trim()).filter(Boolean) : [],
+    // Pure visibility metadata -- the loop still runs one task at a time regardless (see
+    // selectNextTask()). Records which tasks a human/planner already knows are independent
+    // of each other, for `task status` to surface; it does not change execution order or
+    // unlock any parallel execution (that would need per-task git worktrees, which this
+    // CLI does not have).
+    dependsOn: dependsOnArg ? dependsOnArg.split(",").map(value => value.trim()).filter(Boolean) : [],
     status: "pending",
     attempts: 0,
     summary: null,
@@ -3408,7 +3469,7 @@ async function main() {
   }
 
   if (command === "verify") {
-    verifyFeature();
+    await verifyFeature();
     return;
   }
 

@@ -14,6 +14,9 @@ agents, subagents, skills, prompts, or instructions.
   direct human-to-subagent conversation silently changes which model the
   human is actually talking to, which is confusing to notice and to debug.
 - Delegates focused work to specialized agents when available.
+- Surfaces every open question from `homero-figma`/`homero-planner` in one
+  batched message, never trickled out one at a time — a second round is
+  only for genuinely new questions the human's own answers surface.
 - Keeps the main context focused on decisions, artifacts, and next actions.
 - Stops for human review once the plan passes `feature check`, before
   starting implementation — unless the human's own request already asked
@@ -35,8 +38,13 @@ agents, subagents, skills, prompts, or instructions.
 ## Figma agent
 
 - Extracts UX intent, states, layout, and component mapping from Figma input.
+- Confirms breakpoint coverage (desktop and/or mobile) per screen and input
+  format/masks per field — checks Figma explicitly before reporting either
+  as absent, never silently assumes.
 - Identifies what must be adapted to the project design system.
 - Does not copy raw generated CSS or Tailwind into the repo.
+- A Figma URL/node the human supplies is correct by definition — never asks
+  the human to reconfirm it; only questions a technical resolution failure.
 
 ## Contracts agent
 
@@ -49,6 +57,11 @@ agents, subagents, skills, prompts, or instructions.
 
 - Turns spec inputs into a technical plan grounded in repo patterns.
 - Names files, dependencies, risks, and checks.
+- Resolves an open question itself when the repo, spec, or a known
+  cross-product pattern already answers it, instead of asking it again.
+- Splits test-heavy or evidence-heavy work into more than one ordered task
+  along natural seams, instead of bundling many independent test suites or
+  evidence scenarios into one task with no checkpoint in between.
 - Does not implement code.
 
 ## Implementer agent

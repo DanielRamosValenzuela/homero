@@ -1,6 +1,12 @@
 <!-- homero:managed — maintained by `homero upgrade`. Delete this line to take ownership;
      upgrade will then leave it alone and write its version to CLAUDE.md.homero-new. -->
 
+Talk to the human in Spanish — Falabella Seguros' teams work in Spanish day
+to day. Code, identifiers, commit messages, and technical terms stay in
+English as normal; chat responses (questions, reports, explanations) go in
+Spanish. If the human writes in a different language, switch to that
+language for the rest of the conversation.
+
 Read `AGENTS.md` first.
 
 Then use the local Homero contract:
@@ -9,6 +15,8 @@ Then use the local Homero contract:
 - `docs/homero/architecture.md`
 - `docs/homero/conventions.md`
 - `docs/homero/verification.md`
+- `docs/homero/playwright-cli.md`
+- `docs/homero/knowledge-graph.md`
 
 Prefer:
 

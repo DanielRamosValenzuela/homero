@@ -38,8 +38,10 @@
   at all
 - Before planning or implementing a screen with header-like content, check
   how other existing screens/steps in this repo actually compose their own
-  chrome — grep sibling route/page files for what they import — rather than
-  assuming the root layout is the only place to check. A screen
+  chrome — grep sibling route/page files under `paths.stepRoot` for what
+  they import — rather than assuming the root layout is the only place to
+  check, and without sweeping the whole repo (docs/, specs/, features/,
+  test/, etc.) for every `page.tsx`-named hit. A screen
   re-declaring chrome that already exists elsewhere is a visible duplicate
   (two logos, two headers), not a stylistic choice
 

@@ -159,6 +159,19 @@ Concrete patterns worth knowing before you guess dimensions:
 - **Alerts**: live inside a card/content container (never floating bare on
   the page), typically above the affected field group. Don't scatter
   multiple competing alerts in one viewport without grouping/hierarchy.
+- **Buttons and links**: the button source is rich enough to derive
+  consistent rules for size, state, icon placement, loading state, and
+  light/dark appearance. Links complement this with `primary`/`secondary`
+  behavior, `default`/`hover`/`active` states, plus `expand`, `collapse`,
+  and `external` targets. Keep one clear primary action, supporting
+  secondary actions, and links for lightweight navigation or disclosure.
+
+Additional decision rules (beyond the routing below): prefer the most
+conservative extension of an existing pattern over inventing a new one;
+keep the same typography, spacing, border, and color semantics already used
+by adjacent patterns rather than introducing a new visual register; if a
+task needs stacked decisions plus a recap, default to the checkout pattern
+before inventing a new two-column structure.
 
 Routing by task shape:
 
@@ -227,6 +240,16 @@ Structural/behavioral only — for exact component names (`Input`, `TextArea`,
   mobile, protected from burying the primary task. Fixed action bars stay
   stable and predictable across steps.
 
+**Form decision checklist** — before finalizing a form or checkout
+proposal, confirm: labels, help text, validation, and consent are visually
+separated by purpose; required acceptance and optional consent are not
+mixed into one ambiguous block; selection controls match the decision model
+(checkbox for multi-select, radio for single-select); follow-up questions
+appear progressively, not all at once; summary content supports the flow
+without overpowering the main form; if implementation details are needed,
+switch to `tomaco-design-system.instructions.md` for exact components and
+classes.
+
 ## Validation copy conventions
 
 Real, in-production Falabella Seguros error copy (confirmed across two products) follows a consistent register — short, direct, "Debes..."-pattern for required/format errors:
@@ -254,3 +277,31 @@ Before treating a screen proposal or review as done:
 7. If implementation is next, exact component props/classes are validated
    through `tomaco-design-system.instructions.md` or the installed package —
    not assumed from this file.
+
+## Response order
+
+Unless the user asked for raw code immediately, answer in this order: (1)
+**pattern choice** — which existing family or flow is the closest match;
+(2) **layout decision** — container, split, spacing, elevation; (3)
+**behavior decision** — selection model, summary behavior, alerts,
+tooltips, or consent treatment when relevant; (4) **responsive decision** —
+what changes on mobile; (5) **implementation handoff** — whether exact
+component/class validation is now needed from
+`tomaco-design-system.instructions.md`.
+
+When the user specifically asks for a *review* (not a new proposal),
+structure the response around: which foundation rules are being followed,
+which are being broken, which existing component pattern is the closest
+match, what's the smallest change that improves hierarchy/usability, and
+what should stay unchanged because it already matches the system.
+
+## Escalation rules
+
+- If exact Tomaco component names, props, or utility classes are needed,
+  switch to `tomaco-design-system.instructions.md`.
+- If the request depends on a precise variant or exceptional layout not
+  clear from the catalog, inspect the corresponding design source before
+  answering.
+- If branding or marketing needs conflict with UI clarity, keep the UI
+  structure readable first and use brand color as an accent, not as
+  overload.

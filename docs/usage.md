@@ -491,6 +491,17 @@ gutter default de `.row` es `32px`, no `24px`. Tampoco se genera — igual que
 `component-gotchas.md`, hay que releerlo si Tomaco cambia su grilla o sus
 tokens.
 
+Un cuarto archivo, `references/component-spacing.md`
+(`.github/instructions/tomaco-component-spacing.md` en Copilot), trae el
+padding/dimensiones/overflow default de cada componente — verificado contra
+el `.sass` real de cada componente, no adivinado. Existe porque un valor de
+espaciado medido en Figma es el resultado ya renderizado, que puede incluir
+el padding que el componente ya trae por defecto (ej. `Input` ya trae
+`16px 12px`) — sin este archivo, `homero-implementer` podía aplicar el valor
+completo de nuevo sobre un wrapper y sumar más espacio del que Figma
+realmente muestra. Tampoco se genera, mismo criterio de mantenimiento que
+los dos anteriores.
+
 **No hace falta que lo corras a mano.** `init` y `upgrade` lo generan solos si
 `node_modules` ya tiene el paquete, y `validate` te avisa cuando falta o quedó
 viejo. El destino depende de `homeroClient` en `homero.config.json`: escribe

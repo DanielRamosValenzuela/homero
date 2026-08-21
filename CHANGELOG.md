@@ -5,6 +5,94 @@ explaining version boundaries that change `homero upgrade`'s behavior, not a
 full history of every change. Run `homero version --target .` to see what
 your install is actually on.
 
+## 0.21.0
+
+A full gap-and-speed audit (workflow: 4 parallel investigations + a
+verifying synthesis pass) across cross-client drift, stale docs, and real
+speed levers in `homero-planner`/`homero-implementer`. Verification stays
+exactly as thorough — every fix here either makes an existing gate real or
+removes wasted wall-clock, none removes a check.
+
+**Gaps**
+
+- **`design.viewports` is now a real, checked claim, not a hardcoded
+  default.** `feature create` gained `--viewports` (defaults to
+  `desktop,mobile` for compatibility); `featureErrors()` now accepts any
+  non-empty confirmed subset instead of requiring both unconditionally; and
+  `playwrightEvidenceErrors()` cross-checks each recorded viewport against a
+  real screenshot filename ending in `-<viewport>` before `homero verify`
+  can pass. Previously the gate only checked that its own hardcoded default
+  was still present — it could not fail short of manually corrupting the
+  JSON. `homero-coordinator` (both clients) now derives `--viewports` from
+  `homero-figma`'s actual breakpoint-coverage finding instead of passing
+  the default reflexively.
+- **`/homero-review-plan` invoked different agents per client.** Claude
+  went straight to `homero-reviewer`; Copilot routed through the full
+  `homero-coordinator` persona first because `homero-reviewer.agent.md` was
+  `user-invocable: false`. Flipped to `true` (scoped explicitly to this one
+  fresh-session entry point, not a general invitation to bypass the
+  coordinator) and the prompt now targets `homero-reviewer` directly,
+  matching Claude.
+- Added the Spanish-language rule and the full `docs/homero/` reading list
+  (`playwright-cli.md`, `knowledge-graph.md`) to Claude's root `CLAUDE.md` —
+  previously only present inside `homero-coordinator.md`, unlike Copilot's
+  `copilot-instructions.md` which already had both unconditionally.
+- Fixed a real contradiction: `docs/ai-harness-strategy.md` still listed
+  "Figma source of truth" as a `discover`-phase interview topic, directly
+  contradicting the current `/homero-discover` command.
+- Ported 5 sections that existed only on Claude's side of the
+  `seguros-falabella-ui-ux` skill into the Copilot instructions file:
+  Escalation Rules (including the brand/marketing rule), the Response
+  Contract/Review Output Format structure, buttons/links behavioral detail
+  (hover/expand/collapse/external states), the form decision checklist, and
+  3 of 7 component-catalog decision rules that had been dropped in
+  paraphrase.
+- `docs/usage.md` and `docs/homero/agent-roles.md` updated to mention
+  `component-spacing.md`, breakpoint-coverage checking, input-mask
+  checking, question batching, and task-splitting — all real mechanisms
+  from recent versions that these docs never caught up to.
+
+**Planner speed**
+
+- **`homero-planner`/`homero-discovery` (both clients) gained `Bash`/
+  `execute`, scoped to `graphify` only.** `constitution.md` principle 13/15
+  names exactly this planning-phase use case for graph queries, but neither
+  agent could reach the tool — `homero-discovery.md` even had a `graphify`
+  instruction that was dead code without it.
+- Scoped `homero-planner`'s chrome-composition grep to `paths.stepRoot`
+  (matching the pattern already used for the widget-reuse search two lines
+  above it) instead of sweeping the whole repo for every `page.tsx`-named
+  hit. Same fix applied to `docs/homero/architecture.md`'s "App shell"
+  section, the source both agent files point at.
+- `homero-coordinator` now dispatches to `homero-planner` at the same time
+  as running `feature create`, instead of waiting for the CLI to finish
+  writing `feature.json` first — the coordinator already holds every value
+  that file will contain by that point.
+
+**Implementer speed**
+
+- **`homero verify`'s lint/typecheck/test/e2e checks now run concurrently
+  instead of serially.** `runVerificationCommand`/`verifyFeature()` moved
+  from blocking `spawnSync` in a `for` loop to async `spawn` + `Promise.all`
+  — wall-clock drops from `sum(checks)` to roughly `max(checks)`. These are
+  independent processes over the same source tree (typecheck is `--noEmit`,
+  nothing feeds a build step into the others); output still prints in
+  stable `commandNames` order once everything settles, and every check
+  still runs, same as before.
+- `homero-implementer` (both clients) now invokes `seguros-falabella-ui-ux`/
+  `tomaco-design-system` once per feature session instead of once per task
+  — the design system doesn't change mid-feature, and the task loop already
+  runs as one continuous session.
+- "Focused validation after edits" now also covers running the specific
+  unit-test file(s) a task touched (e.g. `vitest run <file>`), the one
+  category left unscoped after 0.18.0's lint/typecheck/Playwright scoping.
+- `task add` gained an optional `--depends-on` field, recorded as
+  `dependsOn` on the task object — pure visibility metadata for `task
+  status`, not real parallel execution. Real task parallelism was checked
+  and correctly rejected: `feature create` checks out one feature in a
+  single shared working tree with no worktrees, and `state.json` has no
+  lock between reads and writes — two implementer instances would race.
+
 ## 0.20.1
 
 Found while packaging Homero's Copilot templates for a copilot-only

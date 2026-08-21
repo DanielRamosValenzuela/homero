@@ -113,9 +113,13 @@ Inspect the repo and interview the user. This is where Homero should ask about:
 - state and data tools
 - testing commands
 - countries, channels, or business variants
-- Figma source of truth
 - backend contract mode, source, format, mock strategy, and sensitive data policy
 - product goals, stakeholders, success criteria, and out-of-scope items
+
+Not Figma — `figmaSource` defaults to `TBD` automatically and is never
+asked here, even as a project-wide convention. A real per-feature Figma URL
+is collected in `plan`, where it's actually used; asking for it during
+discover was a real reported redundancy this doc used to reflect.
 
 Expected output:
 
